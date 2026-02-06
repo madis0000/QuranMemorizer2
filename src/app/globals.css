@@ -1,26 +1,642 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+/* ===== Arabic Fonts ===== */
+/* Note: Google Fonts loaded via <link> in layout.tsx to avoid CSS import order issues */
+
+/* KFGQPC Hafs Uthmanic Font */
+@font-face {
+  font-family: "KFGQPC Hafs Uthmanic Script";
+  src: url("https://cdn.jsdelivr.net/gh/nicferrier/kfgqpc-fonts@master/KFGQPC_HAFS.ttf")
+    format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Amiri Quran Special */
+@font-face {
+  font-family: "Amiri Quran";
+  src: url("https://cdn.jsdelivr.net/npm/quran-fonts@1.0.0/fonts/amiri-quran.ttf")
+    format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Me Quran Font */
+@font-face {
+  font-family: "Me Quran";
+  src: url("https://cdn.jsdelivr.net/npm/quran-fonts@1.0.0/fonts/me_quran.ttf")
+    format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Surah Names Font V4 - for decorative surah headers */
+@font-face {
+  font-family: "SurahNames";
+  src:
+    url("https://static-cdn.tarteel.ai/qul/fonts/surah-names/v4/surah-name-v4.woff2")
+      format("woff2"),
+    url("https://static-cdn.tarteel.ai/qul/fonts/surah-names/v4/surah-name-v4.woff")
+      format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Uthmanic Hafs Unicode Font - fallback for verse markers */
+@font-face {
+  font-family: "UthmanicHafs";
+  src:
+    url("https://verses.quran.foundation/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2")
+      format("woff2"),
+    url("https://verses.quran.foundation/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff")
+      format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+/* ===== CSS Variables ===== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light theme */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: 210 40% 98%;
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --radius: 0.625rem;
+
+  /* Sepia theme variables */
+  --sepia-bg: 39 77% 95%;
+  --sepia-fg: 39 30% 20%;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: 210 40% 98%;
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+.sepia {
+  --background: 39 77% 95%;
+  --foreground: 39 30% 20%;
+  --card: 39 70% 92%;
+  --card-foreground: 39 30% 20%;
+  --muted: 39 50% 85%;
+  --muted-foreground: 39 20% 40%;
+  --border: 39 40% 80%;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --font-sans: var(--font-inter);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ===== Base Styles ===== */
+* {
+  border-color: hsl(var(--border));
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings:
+    "rlig" 1,
+    "calt" 1;
+}
+
+/* ===== RTL Support ===== */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* ===== Arabic Text Styling ===== */
+.arabic-text {
+  font-family: var(
+    --font-arabic,
+    "KFGQPC Hafs Uthmanic Script",
+    "Amiri Quran",
+    "Amiri",
+    "Traditional Arabic",
+    serif
+  );
+  direction: rtl;
+  text-align: right;
+  line-height: 2;
+  font-size: 1.5rem;
+}
+
+/* Uthmani Script (Madinah Mushaf) */
+.font-uthmani {
+  font-family: "KFGQPC Hafs Uthmanic Script", "Amiri Quran", "Amiri", serif;
+}
+
+/* IndoPak Script (Nastaliq) */
+.font-indopak {
+  font-family: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif;
+}
+
+/* Naskh Script (General Arabic) */
+.font-naskh {
+  font-family: "Scheherazade New", "Amiri", "Traditional Arabic", serif;
+}
+
+/* ===== QPC Font Palette Values for V4 Tajweed ===== */
+/* Light theme - base palette 0 */
+@font-palette-values --tajweed-light {
+  font-family: inherit;
+  base-palette: 0;
+}
+
+/* Dark theme - base palette 1 */
+@font-palette-values --tajweed-dark {
+  font-family: inherit;
+  base-palette: 1;
+}
+
+/* Sepia theme - base palette 2 */
+@font-palette-values --tajweed-sepia {
+  font-family: inherit;
+  base-palette: 2;
+}
+
+/* ===== Mushaf Page Styling ===== */
+.mushaf-page {
+  direction: rtl;
+  text-align: justify;
+  line-height: 2.2;
+  /* Ensure proper bidirectional text handling for QPC glyphs */
+  unicode-bidi: bidi-override;
+  /* QPC fonts are dynamically loaded per page via inline style */
+  /* Enable proper Arabic text rendering */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Ensure Arabic ligatures and contextual forms work */
+  font-feature-settings:
+    "liga" 1,
+    "calt" 1,
+    "rlig" 1;
+}
+
+/* Apply Tajweed palette based on theme */
+.mushaf-page {
+  font-palette: --tajweed-light;
+}
+
+.dark .mushaf-page {
+  font-palette: --tajweed-dark;
+}
+
+.sepia .mushaf-page {
+  font-palette: --tajweed-sepia;
+}
+
+.mushaf-line {
+  display: flex;
+  justify-content: space-between;
+  direction: rtl;
+  padding: 0.25rem 0;
+  min-height: 2.5rem;
+  /* Inherit font from parent (QPC font) */
+  font-family: inherit;
+}
+
+.mushaf-line.centered {
+  justify-content: center;
+}
+
+.mushaf-word {
+  display: inline-block;
+  cursor: pointer;
+  padding: 0 0.125rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.15s ease;
+  /* Inherit font from parent (QPC font) */
+  font-family: inherit;
+  /* Ensure proper Arabic glyph rendering */
+  font-feature-settings: inherit;
+}
+
+.mushaf-word:hover {
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+.mushaf-word.highlighted {
+  background-color: hsl(var(--primary) / 0.2);
+}
+
+.mushaf-word.current {
+  background-color: hsl(var(--primary) / 0.3);
+  color: hsl(var(--primary));
+}
+
+.mushaf-word.mistake {
+  background-color: hsl(var(--destructive) / 0.2);
+  color: hsl(var(--destructive));
+}
+
+/* Ayah end marker - embedded in QPC word glyphs */
+.mushaf-word.ayah-end {
+  cursor: default;
+}
+
+/* Surah header decoration */
+.surah-header {
+  text-align: center;
+  padding: 1rem 0;
+  margin: 0.5rem 0;
+  position: relative;
+}
+
+.surah-header-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 280px;
+}
+
+/* Surah Name Font - uses ligature codes like "surah001" */
+.surah-header-name,
+.surah-header-name-ligature {
+  font-family: "SurahNames", "UthmanicHafs", serif;
+  font-size: 2.5rem;
+  color: hsl(var(--foreground));
+  /* Enable ligatures for surah name codes */
+  font-feature-settings:
+    "liga" 1,
+    "calt" 1,
+    "rlig" 1;
+  -webkit-font-feature-settings:
+    "liga" 1,
+    "calt" 1,
+    "rlig" 1;
+  -moz-font-feature-settings:
+    "liga" 1,
+    "calt" 1,
+    "rlig" 1;
+  text-rendering: optimizeLegibility;
+}
+
+.surah-header-name-arabic {
+  font-family:
+    "UthmanicHafs", "KFGQPC Hafs Uthmanic Script", "Amiri Quran", serif;
+}
+
+.surah-name-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.font-surah-names {
+  font-family: "SurahNames", serif;
+  font-feature-settings:
+    "liga" 1,
+    "calt" 1,
+    "rlig" 1;
+  -webkit-font-feature-settings:
+    "liga" 1,
+    "calt" 1,
+    "rlig" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Surah ornaments */
+.surah-ornament {
+  flex-shrink: 0;
+}
+
+/* Basmallah styling */
+.basmallah {
+  text-align: center;
+  font-size: 1.5rem;
+  color: hsl(var(--foreground));
+  padding: 0.5rem 0;
+}
+
+/* Page number display */
+.page-number {
+  font-family: "Amiri", serif;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Juz/Hizb markers */
+.juz-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted));
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+/* ===== Font Size Variants ===== */
+.text-arabic-sm {
+  font-size: 1.25rem;
+  line-height: 1.8;
+}
+
+.text-arabic-base {
+  font-size: 1.5rem;
+  line-height: 2;
+}
+
+.text-arabic-lg {
+  font-size: 1.75rem;
+  line-height: 2.2;
+}
+
+.text-arabic-xl {
+  font-size: 2rem;
+  line-height: 2.4;
+}
+
+.text-arabic-2xl {
+  font-size: 2.5rem;
+  line-height: 2.5;
+}
+
+/* ===== Tajweed Colors (Manual Highlighting) ===== */
+/* Note: QPC V4 fonts have built-in Tajweed colors via font palettes */
+/* These classes are for manual highlighting when using text rendering */
+
+.tajweed-ghunnah {
+  color: #ff7e1e; /* Orange */
+}
+
+.tajweed-qalqalah {
+  color: #4b0082; /* Indigo */
+}
+
+.tajweed-madd-normal {
+  color: #1e90ff; /* Dodger blue */
+}
+
+.tajweed-madd-munfasil {
+  color: #00ced1; /* Dark turquoise */
+}
+
+.tajweed-madd-muttasil {
+  color: #008b8b; /* Dark cyan */
+}
+
+.tajweed-madd-lazim {
+  color: #0000cd; /* Medium blue */
+}
+
+.tajweed-idgham-ghunnah {
+  color: #228b22; /* Forest green */
+}
+
+.tajweed-idgham-no-ghunnah {
+  color: #006400; /* Dark green */
+}
+
+.tajweed-ikhfa {
+  color: #dc143c; /* Crimson */
+}
+
+.tajweed-ikhfa-shafawi {
+  color: #ff69b4; /* Hot pink */
+}
+
+.tajweed-iqlab {
+  color: #8b008b; /* Dark magenta */
+}
+
+.tajweed-izhar {
+  color: #696969; /* Dim gray */
+}
+
+.tajweed-izhar-shafawi {
+  color: #a9a9a9; /* Dark gray */
+}
+
+/* Dark theme adjustments for manual Tajweed colors */
+.dark .tajweed-ghunnah {
+  color: #ffa54d;
+}
+
+.dark .tajweed-qalqalah {
+  color: #9370db;
+}
+
+.dark .tajweed-madd-normal {
+  color: #63b3ed;
+}
+
+.dark .tajweed-ikhfa {
+  color: #fc8181;
+}
+
+.dark .tajweed-idgham-ghunnah {
+  color: #68d391;
+}
+
+.dark .tajweed-iqlab {
+  color: #d53f8c;
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* ===== Dark Theme Mushaf Overrides ===== */
+.dark .mushaf-page {
+  /* Enhanced contrast for dark mode */
+  color: hsl(var(--foreground));
+}
+
+.dark .surah-header-name {
+  color: hsl(var(--foreground));
+}
+
+.dark .surah-ornament svg {
+  color: hsl(var(--primary) / 0.5);
+}
+
+.dark .mushaf-word:hover {
+  background-color: hsl(var(--primary) / 0.15);
+}
+
+.dark .juz-marker {
+  background: hsl(var(--primary) / 0.15);
+  color: hsl(var(--primary));
+}
+
+/* ===== Sepia Theme Mushaf Overrides ===== */
+.sepia .mushaf-page {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.sepia .surah-header {
+  background: linear-gradient(
+    to right,
+    transparent,
+    hsl(39 60% 85% / 0.5),
+    transparent
+  );
+}
+
+.sepia .surah-header-name {
+  color: hsl(39 50% 25%);
+}
+
+/* ===== Animation Utilities ===== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

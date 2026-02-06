@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quran-memorizer
+    ports:
+      - "3000:3000"
+    environment:
+      # Connect to shared PostgreSQL on Docker Desktop
+      DATABASE_URL: "postgresql://postgres:MadisTrader2026@host.docker.internal:5432/quranmemorizer2"
+      # Connect to shared Redis on Docker Desktop
+      REDIS_URL: "redis://host.docker.internal:6379"
+      # NextAuth
+      NEXTAUTH_SECRET: "quran-memorizer-dev-secret-change-in-production"
+      NEXTAUTH_URL: "http://localhost:3000"
+      # Node
+      NODE_ENV: "production"
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -56,12 +56,7 @@ export const MushafLine = memo(function MushafLine({
       );
 
     case "empty":
-      return (
-        <div
-          className={cn("mushaf-line h-8", className)}
-          style={{ minHeight: fontSize ? `${fontSize * 1.5}px` : undefined }}
-        />
-      );
+      return <div className={cn("mushaf-line", className)} />;
 
     case "ayah":
     default:
@@ -104,12 +99,11 @@ function SurahNameLine({ line, fontSize, className }: SurahNameLineProps) {
       className={cn(
         "mushaf-line surah-header",
         "flex items-center justify-center",
-        "py-4 my-3",
         className
       )}
     >
       {/* Decorative surah header with ornamental frame */}
-      <div className="surah-header-frame relative flex items-center justify-center px-8 py-3 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-lg border border-primary/20">
+      <div className="surah-header-frame relative flex items-center justify-center px-8 py-2 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-lg border border-primary/20">
         {/* Left ornament */}
         <SurahHeaderOrnament side="left" />
 
@@ -117,7 +111,6 @@ function SurahNameLine({ line, fontSize, className }: SurahNameLineProps) {
         <span
           className="surah-header-name text-foreground px-6"
           style={{
-            fontSize: fontSize ? `${fontSize * 1.3}px` : "2rem",
             fontFamily:
               "'UthmanicHafs', 'KFGQPC Hafs Uthmanic Script', 'Amiri Quran', serif",
             fontWeight: 600,
@@ -188,7 +181,6 @@ function BasmallahLine({ line, fontSize, className }: BasmallahLineProps) {
       className={cn(
         "mushaf-line basmallah",
         "flex items-center justify-center",
-        "py-2",
         className
       )}
     >
@@ -196,17 +188,11 @@ function BasmallahLine({ line, fontSize, className }: BasmallahLineProps) {
       {glyphCode ? (
         <span
           className="text-foreground"
-          style={{ fontSize: fontSize ? `${fontSize}px` : "1.5rem" }}
           dangerouslySetInnerHTML={{ __html: glyphCode }}
           suppressHydrationWarning
         />
       ) : (
-        <span
-          className="text-foreground"
-          style={{ fontSize: fontSize ? `${fontSize}px` : "1.5rem" }}
-        >
-          {fallbackText}
-        </span>
+        <span className="text-foreground">{fallbackText}</span>
       )}
     </div>
   );
@@ -248,16 +234,10 @@ function AyahLine({
     <div
       className={cn(
         "mushaf-line",
-        "flex items-center gap-1",
-        "min-h-[2.5rem]",
+        "flex items-center",
         line.isCentered ? "justify-center" : "justify-between",
         className
       )}
-      style={{
-        direction: "rtl",
-        fontSize: fontSize ? `${fontSize}px` : undefined,
-        lineHeight: "2.2",
-      }}
       dir="rtl"
     >
       {line.words.map((word) => (
@@ -273,7 +253,6 @@ function AyahLine({
           isHidden={hiddenWordKeys?.has(word.wordKey)}
           onClick={onWordClick}
           onHover={onWordHover}
-          fontSize={fontSize}
         />
       ))}
     </div>

@@ -132,17 +132,6 @@ export const MushafPage = memo(function MushafPage({
     pageFontFamily,
   ]);
 
-  // Calculate optimal font size based on lines per page
-  const fontSize = useMemo(() => {
-    const baseFontSize = 28; // Slightly larger for QPC fonts
-    const linesPerPage = editionConfig?.linesPerPage || 15;
-
-    // Adjust font size based on lines per page
-    if (linesPerPage <= 13) return baseFontSize * 1.15;
-    if (linesPerPage >= 16) return baseFontSize * 0.9;
-    return baseFontSize;
-  }, [editionConfig?.linesPerPage]);
-
   // Get font class based on script type (only used as fallback before QPC fonts load)
   // Once QPC fonts are loaded, the inline fontFamily style takes precedence
   const fontClass = useMemo(() => {
@@ -154,11 +143,14 @@ export const MushafPage = memo(function MushafPage({
     return scriptType === "indopak" ? "font-indopak" : "font-uthmani";
   }, [editionConfig?.scriptType, qpcVersion]);
 
+  const aspectRatio = editionConfig?.aspectRatio || 1.618;
+
   return (
     <div
       className={cn(
         "mushaf-page",
         "relative",
+        "flex flex-col",
         "bg-background",
         "border border-border rounded-lg",
         "shadow-sm",
@@ -172,6 +164,8 @@ export const MushafPage = memo(function MushafPage({
       lang="ar"
       style={{
         fontFamily: pageFontFamily,
+        aspectRatio: `1 / ${aspectRatio}`,
+        width: `min(100%, calc((100vh - 12rem) / ${aspectRatio}))`,
       }}
     >
       {/* Page header with Juz/Hizb info */}
@@ -184,8 +178,8 @@ export const MushafPage = memo(function MushafPage({
         />
       )}
 
-      {/* Page content */}
-      <div className="px-4 py-2 space-y-1">
+      {/* Page content - lines distributed evenly to fill page height */}
+      <div className="flex-1 flex flex-col px-[5%] py-[2%]">
         {page.lines.map((line, index) => (
           <MushafLine
             key={`${page.pageNumber}-${line.lineNumber}-${index}`}
@@ -199,7 +193,7 @@ export const MushafPage = memo(function MushafPage({
             hiddenWordKeys={hiddenWordKeys}
             onWordClick={onWordClick}
             onWordHover={onWordHover}
-            fontSize={fontSize}
+            className="flex-1"
           />
         ))}
       </div>
@@ -266,11 +260,19 @@ function PageFooter({ pageNumber }: PageFooterProps) {
  */
 export function MushafPageSkeleton({
   linesPerPage = 15,
+  aspectRatio = 1.618,
 }: {
   linesPerPage?: number;
+  aspectRatio?: number;
 }) {
   return (
-    <div className="mushaf-page bg-background border border-border rounded-lg shadow-sm overflow-hidden animate-pulse">
+    <div
+      className="mushaf-page bg-background border border-border rounded-lg shadow-sm overflow-hidden animate-pulse"
+      style={{
+        aspectRatio: `1 / ${aspectRatio}`,
+        width: `min(100%, calc((100vh - 12rem) / ${aspectRatio}))`,
+      }}
+    >
       {/* Header skeleton */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
         <div className="h-4 w-16 bg-muted rounded" />

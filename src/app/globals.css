@@ -264,10 +264,10 @@ body {
 .mushaf-page {
   direction: rtl;
   text-align: justify;
-  line-height: 2.2;
+  /* Enable container queries for responsive font sizing */
+  container-type: inline-size;
   /* Ensure proper bidirectional text handling for QPC glyphs */
   unicode-bidi: bidi-override;
-  /* QPC fonts are dynamically loaded per page via inline style */
   /* Enable proper Arabic text rendering */
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -277,6 +277,18 @@ body {
     "liga" 1,
     "calt" 1,
     "rlig" 1;
+}
+
+/* Decorative inner frame matching physical Mushaf double-border style */
+.mushaf-page::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.4;
 }
 
 /* Apply Tajweed palette based on theme */
@@ -295,15 +307,29 @@ body {
 .mushaf-line {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   direction: rtl;
-  padding: 0.25rem 0;
-  min-height: 2.5rem;
-  /* Inherit font from parent (QPC font) */
+  /* No fixed padding/min-height: flex-1 distributes lines evenly across the page */
   font-family: inherit;
 }
 
 .mushaf-line.centered {
   justify-content: center;
+}
+
+/* Responsive font sizing based on container width (quran.com formula: width / 21 ≈ 4.76%) */
+@container (inline-size > 0px) {
+  .mushaf-line {
+    font-size: clamp(14px, 4.76cqi, 30px);
+  }
+
+  .surah-header .surah-header-name {
+    font-size: clamp(18px, 6.2cqi, 38px);
+  }
+
+  .basmallah {
+    font-size: clamp(14px, 4.76cqi, 30px);
+  }
 }
 
 .mushaf-word {

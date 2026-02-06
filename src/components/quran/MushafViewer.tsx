@@ -173,9 +173,12 @@ export function MushafViewer({
   return (
     <div className={cn("mushaf-viewer flex flex-col gap-4", className)}>
       {/* Page content */}
-      <div className="relative">
+      <div className="relative flex justify-center">
         {isLoading ? (
-          <MushafPageSkeleton linesPerPage={editionConfig?.linesPerPage} />
+          <MushafPageSkeleton
+            linesPerPage={editionConfig?.linesPerPage}
+            aspectRatio={editionConfig?.aspectRatio}
+          />
         ) : pageLayout ? (
           <MushafPage
             page={pageLayout}

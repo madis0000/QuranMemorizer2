@@ -18,6 +18,9 @@ export interface MushafEdition {
   fontFamily: string;
   scriptType: "uthmani" | "indopak";
   description: string;
+  /** Page height-to-width ratio. Madinah Mushaf uses the golden ratio (PHI ≈ 1.618).
+   *  Source: quran.com-images (lib/Quran/Image.pm) */
+  aspectRatio: number;
 }
 
 export const MUSHAF_EDITIONS: Record<MushafEditionId, MushafEdition> = {
@@ -30,6 +33,7 @@ export const MUSHAF_EDITIONS: Record<MushafEditionId, MushafEdition> = {
     fontFamily: "KFGQPC Hafs Uthmanic Script",
     scriptType: "uthmani",
     description: "Classic Madinah Mushaf edition from 1405 Hijri",
+    aspectRatio: 1.618,
   },
   madinah_1421: {
     id: "madinah_1421",
@@ -40,6 +44,7 @@ export const MUSHAF_EDITIONS: Record<MushafEditionId, MushafEdition> = {
     fontFamily: "KFGQPC Hafs Uthmanic Script",
     scriptType: "uthmani",
     description: "Standard Madinah Mushaf edition from 1421 Hijri",
+    aspectRatio: 1.618,
   },
   madinah_1441: {
     id: "madinah_1441",
@@ -50,6 +55,7 @@ export const MUSHAF_EDITIONS: Record<MushafEditionId, MushafEdition> = {
     fontFamily: "KFGQPC HAFS Uthmanic Script",
     scriptType: "uthmani",
     description: "Latest Madinah Mushaf with Tajweed color coding",
+    aspectRatio: 1.618,
   },
   indopak_15: {
     id: "indopak_15",
@@ -60,6 +66,7 @@ export const MUSHAF_EDITIONS: Record<MushafEditionId, MushafEdition> = {
     fontFamily: "Noto Nastaliq Urdu",
     scriptType: "indopak",
     description: "South Asian style with 15 lines per page",
+    aspectRatio: 1.618,
   },
   indopak_13: {
     id: "indopak_13",
@@ -70,6 +77,7 @@ export const MUSHAF_EDITIONS: Record<MushafEditionId, MushafEdition> = {
     fontFamily: "Noto Nastaliq Urdu",
     scriptType: "indopak",
     description: "South Asian style with 13 lines per page",
+    aspectRatio: 1.403,
   },
   indopak_16: {
     id: "indopak_16",
@@ -80,6 +88,7 @@ export const MUSHAF_EDITIONS: Record<MushafEditionId, MushafEdition> = {
     fontFamily: "Noto Nastaliq Urdu",
     scriptType: "indopak",
     description: "South Asian style with 16 lines per page",
+    aspectRatio: 1.726,
   },
   digital_khatt: {
     id: "digital_khatt",
@@ -90,6 +99,7 @@ export const MUSHAF_EDITIONS: Record<MushafEditionId, MushafEdition> = {
     fontFamily: "Digital Khatt",
     scriptType: "uthmani",
     description: "Modern digital typography",
+    aspectRatio: 1.618,
   },
 };
 

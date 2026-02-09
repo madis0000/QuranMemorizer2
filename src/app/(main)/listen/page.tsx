@@ -1,21 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Headphones,
   Loader2,
   Pause,
   Play,
+  PlayCircle,
   Repeat,
   SkipBack,
   SkipForward,
   Volume2,
+  Wifi,
 } from "lucide-react";
 
 import { POPULAR_RECITERS } from "@/lib/quran/api";
+import { cn } from "@/lib/utils";
+import { useAudioDownload } from "@/hooks/use-audio-download";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
-import { useSurahs } from "@/hooks/use-quran";
+import { useAyahs, useSurahs } from "@/hooks/use-quran";
 import { useAudioStore, type RepeatMode } from "@/stores/audioStore";
+import { AyahPlayButton } from "@/components/audio/AyahPlayButton";
+import { DownloadButton } from "@/components/audio/DownloadButton";
+import { ReciterCard } from "@/components/audio/ReciterCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -56,8 +63,22 @@ export default function ListenPage() {
   // Fetch all surahs
   const { data: surahs, isLoading: surahsLoading } = useSurahs();
 
+  // Audio download management
+  const { checkIsDownloaded } = useAudioDownload();
+
   // Selected surah for playback (defaults to currentSurah from store)
   const [selectedSurahNumber, setSelectedSurahNumber] = useState(currentSurah);
+
+  // Track whether the selected surah is available offline
+  const [isSelectedOffline, setIsSelectedOffline] = useState(false);
+
+  // Fetch ayahs for the selected surah (for ayah-by-ayah display)
+  const { data: ayahs, isLoading: ayahsLoading } =
+    useAyahs(selectedSurahNumber);
+
+  // Ref map for auto-scrolling to the current ayah
+  const ayahRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Get current surah info
   const currentSurahInfo = surahs?.find((s) => s.number === currentSurah);
@@ -67,6 +88,44 @@ export default function ListenPage() {
 
   // Get current reciter info
   const reciter = POPULAR_RECITERS.find((r) => r.id === currentReciter);
+
+  // Check offline status when selected surah changes
+  useEffect(() => {
+    let cancelled = false;
+    if (selectedSurahInfo) {
+      checkIsDownloaded(
+        selectedSurahNumber,
+        selectedSurahInfo.numberOfAyahs
+      ).then((downloaded) => {
+        if (!cancelled) setIsSelectedOffline(downloaded);
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSurahNumber, selectedSurahInfo, checkIsDownloaded]);
+
+  // Auto-scroll to the currently playing ayah
+  useEffect(() => {
+    if (currentSurah === selectedSurahNumber && currentAyah > 0 && isPlaying) {
+      const el = ayahRefs.current.get(currentAyah);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [currentAyah, currentSurah, selectedSurahNumber, isPlaying]);
+
+  // Callback ref setter for ayah elements
+  const setAyahRef = useCallback(
+    (ayahNumber: number, el: HTMLDivElement | null) => {
+      if (el) {
+        ayahRefs.current.set(ayahNumber, el);
+      } else {
+        ayahRefs.current.delete(ayahNumber);
+      }
+    },
+    []
+  );
 
   // Handle play button
   const handlePlay = () => {
@@ -82,6 +141,14 @@ export default function ListenPage() {
     }
   };
 
+  // Play from a specific ayah onwards
+  const handlePlayFromAyah = (ayahNumber: number) => {
+    const surah = surahs?.find((s) => s.number === selectedSurahNumber);
+    if (surah) {
+      playRange(selectedSurahNumber, ayahNumber, surah.numberOfAyahs);
+    }
+  };
+
   // Handle progress bar change
   const handleSeek = (value: number[]) => {
     if (duration > 0) {
@@ -90,7 +157,7 @@ export default function ListenPage() {
     }
   };
 
-  // Handle repeat mode cycling: none → ayah → surah → none
+  // Handle repeat mode cycling: none -> ayah -> surah -> none
   const handleRepeatToggle = () => {
     const modes: RepeatMode[] = ["none", "ayah", "surah"];
     const currentIndex = modes.indexOf(repeatMode);
@@ -130,18 +197,36 @@ export default function ListenPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <select
-                value={selectedSurahNumber}
-                onChange={(e) => setSelectedSurahNumber(Number(e.target.value))}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                {surahs?.map((surah) => (
-                  <option key={surah.number} value={surah.number}>
-                    {surah.number}. {surah.englishName} - {surah.name} (
-                    {surah.numberOfAyahs} verses)
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedSurahNumber}
+                    onChange={(e) =>
+                      setSelectedSurahNumber(Number(e.target.value))
+                    }
+                    className="flex-1 bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {surahs?.map((surah) => (
+                      <option key={surah.number} value={surah.number}>
+                        {surah.number}. {surah.englishName} - {surah.name} (
+                        {surah.numberOfAyahs} verses)
+                      </option>
+                    ))}
+                  </select>
+                  {selectedSurahInfo && (
+                    <DownloadButton
+                      surahNumber={selectedSurahNumber}
+                      totalAyahs={selectedSurahInfo.numberOfAyahs}
+                    />
+                  )}
+                </div>
+                {isSelectedOffline && (
+                  <div className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                    <Wifi className="h-3 w-3" />
+                    <span>Available Offline</span>
+                  </div>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -161,7 +246,8 @@ export default function ListenPage() {
             {/* Current Surah Info */}
             <div className="text-center mb-6">
               <h2 className="text-3xl arabic-text mb-2">
-                {currentSurahInfo?.name || "القرآن الكريم"}
+                {currentSurahInfo?.name ||
+                  "\u0627\u0644\u0642\u0631\u0622\u0646 \u0627\u0644\u0643\u0631\u064a\u0645"}
               </h2>
               <p className="text-lg">
                 {currentSurahInfo?.englishName || "Select a Surah"}{" "}
@@ -274,6 +360,99 @@ export default function ListenPage() {
           </CardContent>
         </Card>
 
+        {/* Ayah-by-Ayah Display */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Ayah-by-Ayah</span>
+              {selectedSurahInfo && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  {selectedSurahInfo.englishName} -{" "}
+                  {selectedSurahInfo.numberOfAyahs} verses
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {ayahsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : ayahs && ayahs.length > 0 ? (
+              <div
+                ref={scrollContainerRef}
+                className="space-y-2 max-h-[60vh] overflow-y-auto pr-1"
+              >
+                {ayahs.map((ayah) => {
+                  const isCurrentAyah =
+                    currentSurah === selectedSurahNumber &&
+                    currentAyah === ayah.numberInSurah;
+                  const isCurrentlyPlaying = isCurrentAyah && isPlaying;
+
+                  return (
+                    <div
+                      key={ayah.numberInSurah}
+                      ref={(el) => setAyahRef(ayah.numberInSurah, el)}
+                      className={cn(
+                        "group flex items-start gap-3 p-3 rounded-lg border transition-colors",
+                        isCurrentlyPlaying
+                          ? "border-primary bg-primary/5"
+                          : isCurrentAyah
+                            ? "border-primary/50 bg-primary/[0.02]"
+                            : "border-transparent hover:bg-accent/50"
+                      )}
+                    >
+                      {/* Ayah number badge */}
+                      <div
+                        className={cn(
+                          "flex items-center justify-center h-8 w-8 rounded-full text-xs font-medium shrink-0 mt-1",
+                          isCurrentlyPlaying
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {ayah.numberInSurah}
+                      </div>
+
+                      {/* Arabic text */}
+                      <p
+                        className={cn(
+                          "flex-1 text-xl leading-loose arabic-text",
+                          isCurrentlyPlaying && "text-primary"
+                        )}
+                        dir="rtl"
+                      >
+                        {ayah.text}
+                      </p>
+
+                      {/* Play controls */}
+                      <div className="flex flex-col items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <AyahPlayButton
+                          surahNumber={selectedSurahNumber}
+                          ayahNumber={ayah.numberInSurah}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handlePlayFromAyah(ayah.numberInSurah)}
+                          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+                          title={`Play from ayah ${ayah.numberInSurah} onwards`}
+                        >
+                          <PlayCircle className="h-3 w-3" />
+                          <span className="hidden sm:inline">From here</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                Select a surah to see its ayahs
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Reciter Selection */}
         <Card>
           <CardHeader>
@@ -282,28 +461,12 @@ export default function ListenPage() {
           <CardContent>
             <div className="grid gap-2">
               {POPULAR_RECITERS.map((reciterOption) => (
-                <button
+                <ReciterCard
                   key={reciterOption.id}
-                  onClick={() => setCurrentReciter(reciterOption.id)}
-                  className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                    currentReciter === reciterOption.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:bg-accent"
-                  }`}
-                >
-                  <div>
-                    <p className="font-medium">{reciterOption.name}</p>
-                    <p className="text-sm text-muted-foreground arabic-text">
-                      {reciterOption.arabicName}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {reciterOption.style}
-                    </p>
-                  </div>
-                  {currentReciter === reciterOption.id && (
-                    <div className="h-4 w-4 rounded-full bg-primary" />
-                  )}
-                </button>
+                  reciter={reciterOption}
+                  isSelected={currentReciter === reciterOption.id}
+                  onSelect={setCurrentReciter}
+                />
               ))}
             </div>
           </CardContent>

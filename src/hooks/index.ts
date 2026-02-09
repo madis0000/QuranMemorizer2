@@ -45,3 +45,10 @@ export { useAudioPlayer } from "./use-audio-player";
 
 // Voice recognition hook
 export { useVoiceRecognition } from "./use-voice-recognition";
+
+// Voice search hook ("Shazam for Quran")
+export { useVoiceSearch } from "./use-voice-search";
+export type {
+  VoiceSearchResultItem,
+  VoiceSearchStatus,
+} from "./use-voice-search";

@@ -17,8 +17,10 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { MiniPlayer } from "@/components/audio/MiniPlayer";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { VoiceSearchFAB } from "@/components/voice/VoiceSearchFAB";
 
 const navigation = [
   { name: "Quran", href: "/quran", icon: BookOpen },
@@ -171,10 +173,14 @@ export default function MainLayout({
           "pt-16 lg:pt-0"
         )}
       >
-        <div className="h-full">
+        <div className="h-full pb-16">
           <ErrorBoundary>{children}</ErrorBoundary>
         </div>
+        <MiniPlayer />
       </main>
+
+      {/* Voice Search FAB - floats above all content */}
+      <VoiceSearchFAB />
     </div>
   );
 }

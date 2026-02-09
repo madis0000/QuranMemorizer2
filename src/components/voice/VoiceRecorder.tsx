@@ -1,21 +1,48 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Mic, MicOff, Square } from "lucide-react";
+import { Loader2, Mic, Square, Wifi, WifiOff } from "lucide-react";
 
+import {
+  createAudioBlob,
+  shouldUseWhisper,
+  transcribeWithWhisper,
+} from "@/lib/speech/whisper";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+// ===== Types =====
+
+export type EngineType = "web-speech" | "whisper";
 
 interface VoiceRecorderProps {
   onTranscript: (text: string, isFinal: boolean) => void;
   onRecordingChange?: (isRecording: boolean) => void;
+  onEngineChange?: (engine: EngineType) => void;
   disabled?: boolean;
   className?: string;
 }
 
+/** Shape of the object returned by createWebSpeechRecognizer. */
+interface WebSpeechHandle {
+  start: () => void;
+  stop: () => void;
+}
+
+// ===== Constants =====
+
+/** Number of consecutive Web Speech failures before auto-switching to Whisper. */
+const MAX_WEB_SPEECH_FAILURES = 3;
+
+/** Interval (ms) at which Whisper mode sends audio chunks for transcription. */
+const WHISPER_CHUNK_INTERVAL_MS = 3_000;
+
+// ===== Component =====
+
 export function VoiceRecorder({
   onTranscript,
   onRecordingChange,
+  onEngineChange,
   disabled = false,
   className,
 }: VoiceRecorderProps) {
@@ -23,12 +50,34 @@ export function VoiceRecorder({
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0);
-  const recognizerRef = useRef<ReturnType<typeof createRecognizer> | null>(
-    null
+  const [activeEngine, setActiveEngine] = useState<EngineType>(() =>
+    shouldUseWhisper() ? "whisper" : "web-speech"
   );
+
+  // Refs for Web Speech mode
+  const recognizerRef = useRef<WebSpeechHandle | null>(null);
+  const webSpeechFailuresRef = useRef(0);
+
+  // Refs for volume visualisation (shared by both engines)
   const animationFrameRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Refs for Whisper mode
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const whisperChunksRef = useRef<Blob[]>([]);
+  const whisperIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null
+  );
+  const isRecordingRef = useRef(false);
+
+  // Keep isRecordingRef in sync
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  // ===== Volume animation =====
 
   const updateVolume = useCallback(() => {
     if (analyserRef.current) {
@@ -37,10 +86,10 @@ export function VoiceRecorder({
       const avg = data.reduce((a, b) => a + b, 0) / data.length;
       setVolume(avg / 255);
     }
-    if (isRecording) {
+    if (isRecordingRef.current) {
       animationFrameRef.current = requestAnimationFrame(updateVolume);
     }
-  }, [isRecording]);
+  }, []);
 
   useEffect(() => {
     if (isRecording) {
@@ -53,48 +102,67 @@ export function VoiceRecorder({
     };
   }, [isRecording, updateVolume]);
 
+  // ===== Shared audio setup for volume visualisation =====
+
+  const setupAudioAnalyser = useCallback(async (): Promise<MediaStream> => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    streamRef.current = stream;
+
+    const audioCtx = new AudioContext();
+    audioCtxRef.current = audioCtx;
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    analyserRef.current = analyser;
+
+    return stream;
+  }, []);
+
+  // ===== Engine switching =====
+
+  const switchEngine = useCallback(
+    (engine: EngineType) => {
+      setActiveEngine(engine);
+      onEngineChange?.(engine);
+    },
+    [onEngineChange]
+  );
+
+  // ===== Whisper mode: send chunks periodically =====
+
+  const sendWhisperChunk = useCallback(async () => {
+    if (whisperChunksRef.current.length === 0) return;
+
+    const blob = createAudioBlob([...whisperChunksRef.current]);
+    // Keep accumulating for context, but we send the full recording so far
+    // so that Whisper can improve its output with more context.
+    try {
+      const result = await transcribeWithWhisper(blob);
+      if (result.text) {
+        // Whisper returns the full transcription so far; treat as interim
+        // until recording stops
+        onTranscript(result.text, false);
+      }
+    } catch {
+      // Silently ignore transient transcription errors in streaming mode
+    }
+  }, [onTranscript]);
+
+  // ===== Start recording =====
+
   const startRecording = async () => {
     setError(null);
     setIsInitializing(true);
 
     try {
-      // Check browser support
-      const SpeechRecognition =
-        typeof window !== "undefined"
-          ? (window as any).SpeechRecognition ||
-            (window as any).webkitSpeechRecognition // eslint-disable-line @typescript-eslint/no-explicit-any
-          : null;
+      const stream = await setupAudioAnalyser();
 
-      if (!SpeechRecognition) {
-        setError(
-          "Speech recognition is not supported in your browser. Try Chrome or Edge."
-        );
-        setIsInitializing(false);
-        return;
+      if (activeEngine === "whisper") {
+        await startWhisperRecording(stream);
+      } else {
+        startWebSpeechRecording(stream);
       }
-
-      // Get audio stream for volume visualization
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-
-      const audioCtx = new AudioContext();
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      analyserRef.current = analyser;
-
-      // Create speech recognizer
-      const recognizer = createRecognizer(
-        SpeechRecognition,
-        onTranscript,
-        (err) => {
-          setError(err);
-          stopRecording();
-        }
-      );
-      recognizerRef.current = recognizer;
-      recognizer.start();
 
       setIsRecording(true);
       onRecordingChange?.(true);
@@ -111,30 +179,175 @@ export function VoiceRecorder({
     }
   };
 
-  const stopRecording = useCallback(() => {
+  // ===== Web Speech recording =====
+
+  const startWebSpeechRecording = (stream: MediaStream) => {
+    // Access the SpeechRecognition constructor
+    const win = window as unknown as Record<string, unknown>;
+    const SpeechRecognitionCtor =
+      win.SpeechRecognition ?? win.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionCtor) {
+      // No Web Speech support at all: switch to Whisper
+      switchEngine("whisper");
+      void startWhisperRecording(stream);
+      return;
+    }
+
+    const recognizer = createWebSpeechRecognizer(
+      SpeechRecognitionCtor as new () => SpeechRecognitionInstanceLocal,
+      onTranscript,
+      (err: string) => {
+        webSpeechFailuresRef.current += 1;
+
+        if (webSpeechFailuresRef.current >= MAX_WEB_SPEECH_FAILURES) {
+          // Auto-switch to Whisper after repeated failures
+          switchEngine("whisper");
+          setError(null);
+
+          // Stop the Web Speech recognizer and start Whisper with the existing stream
+          if (recognizerRef.current) {
+            recognizerRef.current.stop();
+            recognizerRef.current = null;
+          }
+          if (streamRef.current) {
+            void startWhisperRecording(streamRef.current);
+          }
+          return;
+        }
+
+        setError(err);
+      }
+    );
+    recognizerRef.current = recognizer;
+    recognizer.start();
+  };
+
+  // ===== Whisper recording =====
+
+  const startWhisperRecording = async (stream: MediaStream) => {
+    whisperChunksRef.current = [];
+
+    // Determine supported MIME type
+    const mimeTypes = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+      "audio/mp4",
+    ];
+    let selectedMime: string | undefined;
+    for (const mime of mimeTypes) {
+      if (
+        typeof MediaRecorder !== "undefined" &&
+        MediaRecorder.isTypeSupported(mime)
+      ) {
+        selectedMime = mime;
+        break;
+      }
+    }
+
+    const options: MediaRecorderOptions = {};
+    if (selectedMime) {
+      options.mimeType = selectedMime;
+    }
+
+    const recorder = new MediaRecorder(stream, options);
+    mediaRecorderRef.current = recorder;
+
+    recorder.addEventListener("dataavailable", (event: BlobEvent) => {
+      if (event.data && event.data.size > 0) {
+        whisperChunksRef.current.push(event.data);
+      }
+    });
+
+    recorder.start(250); // Collect chunks every 250ms
+
+    // Send accumulated audio to Whisper every ~3 seconds
+    whisperIntervalRef.current = setInterval(() => {
+      void sendWhisperChunk();
+    }, WHISPER_CHUNK_INTERVAL_MS);
+  };
+
+  // ===== Stop recording =====
+
+  const stopRecording = useCallback(async () => {
+    // Stop Web Speech recognizer
     if (recognizerRef.current) {
       recognizerRef.current.stop();
       recognizerRef.current = null;
     }
+
+    // Stop Whisper interval
+    if (whisperIntervalRef.current) {
+      clearInterval(whisperIntervalRef.current);
+      whisperIntervalRef.current = null;
+    }
+
+    // Stop MediaRecorder and send final chunk
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+
+      // Final transcription of accumulated audio
+      if (whisperChunksRef.current.length > 0) {
+        try {
+          const blob = createAudioBlob([...whisperChunksRef.current]);
+          const result = await transcribeWithWhisper(blob);
+          if (result.text) {
+            onTranscript(result.text, true);
+          }
+        } catch {
+          // Ignore error on final send
+        }
+        whisperChunksRef.current = [];
+      }
+    }
+
+    // Release audio resources
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close().catch(() => {
+        // Ignore close errors
+      });
+      audioCtxRef.current = null;
+    }
     analyserRef.current = null;
+
     setIsRecording(false);
     setVolume(0);
     onRecordingChange?.(false);
-  }, [onRecordingChange]);
+  }, [onRecordingChange, onTranscript]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopRecording();
+      // Fire-and-forget cleanup; cannot await in a cleanup function
+      void stopRecording();
     };
   }, [stopRecording]);
 
+  // ===== Render =====
+
+  const engineLabel = activeEngine === "whisper" ? "Whisper AI" : "Web Speech";
+
   return (
     <div className={cn("flex flex-col items-center gap-2", className)}>
+      {/* Engine indicator */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {activeEngine === "whisper" ? (
+          <WifiOff className="h-3 w-3" />
+        ) : (
+          <Wifi className="h-3 w-3" />
+        )}
+        <span>{engineLabel}</span>
+      </div>
+
       {/* Record Button */}
       <Button
         size="lg"
@@ -143,7 +356,7 @@ export function VoiceRecorder({
           "relative h-16 w-16 rounded-full p-0 transition-all",
           isRecording && "animate-pulse"
         )}
-        onClick={isRecording ? stopRecording : startRecording}
+        onClick={isRecording ? () => void stopRecording() : startRecording}
         disabled={disabled || isInitializing}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
       >
@@ -180,12 +393,54 @@ export function VoiceRecorder({
   );
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function createRecognizer(
-  SpeechRecognitionCtor: any,
+// ===== Web Speech API local types =====
+// Minimal local interfaces to avoid importing global Speech types
+// which may conflict with other declarations.
+
+interface SpeechRecognitionAlternativeLocal {
+  readonly transcript: string;
+  readonly confidence: number;
+}
+
+interface SpeechRecognitionResultLocal {
+  readonly isFinal: boolean;
+  readonly length: number;
+  [index: number]: SpeechRecognitionAlternativeLocal;
+}
+
+interface SpeechRecognitionResultListLocal {
+  readonly length: number;
+  [index: number]: SpeechRecognitionResultLocal;
+}
+
+interface SpeechRecognitionEventLocal {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultListLocal;
+}
+
+interface SpeechRecognitionErrorEventLocal {
+  readonly error: string;
+}
+
+interface SpeechRecognitionInstanceLocal {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  start(): void;
+  stop(): void;
+  onresult: ((ev: SpeechRecognitionEventLocal) => void) | null;
+  onerror: ((ev: SpeechRecognitionErrorEventLocal) => void) | null;
+  onend: (() => void) | null;
+}
+
+// ===== Web Speech recognizer factory =====
+
+function createWebSpeechRecognizer(
+  SpeechRecognitionCtor: new () => SpeechRecognitionInstanceLocal,
   onResult: (text: string, isFinal: boolean) => void,
   onError: (error: string) => void
-) {
+): WebSpeechHandle {
   const recognition = new SpeechRecognitionCtor();
   recognition.lang = "ar-SA";
   recognition.continuous = true;
@@ -195,7 +450,7 @@ function createRecognizer(
   let restartCount = 0;
   const maxRestarts = 3;
 
-  recognition.onresult = (event: any) => {
+  recognition.onresult = (event: SpeechRecognitionEventLocal) => {
     let interimTranscript = "";
     let finalTranscript = "";
 
@@ -215,7 +470,7 @@ function createRecognizer(
     }
   };
 
-  recognition.onerror = (event: any) => {
+  recognition.onerror = (event: SpeechRecognitionErrorEventLocal) => {
     const errorMessages: Record<string, string> = {
       "no-speech": "No speech detected. Please try again.",
       "audio-capture": "No microphone found.",
@@ -251,4 +506,3 @@ function createRecognizer(
     },
   };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

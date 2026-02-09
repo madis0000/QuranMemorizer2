@@ -161,6 +161,10 @@ export function useAudioPlayer() {
     playerRef.current?.previous();
   }, []);
 
+  const stop = useCallback(() => {
+    playerRef.current?.stop();
+  }, []);
+
   const seekTo = useCallback((time: number) => {
     playerRef.current?.seekTo(time);
   }, []);
@@ -209,6 +213,7 @@ export function useAudioPlayer() {
     playRange,
     togglePlay,
     pause,
+    stop,
     next,
     previous,
     seekTo,

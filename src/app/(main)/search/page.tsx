@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -10,6 +10,10 @@ import {
   Search as SearchIcon,
 } from "lucide-react";
 
+import {
+  ArabicSpeechRecognizer,
+  type RecognitionResult,
+} from "@/lib/speech/recognition";
 import { useSearch, useSurahs } from "@/hooks/use-quran";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +24,8 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const recognizerRef = useRef<ArabicSpeechRecognizer | null>(null);
 
   // Debounce search query (300ms)
   useEffect(() => {
@@ -45,15 +51,70 @@ export default function SearchPage() {
     return surah?.englishName || `Surah ${surahNumber}`;
   };
 
-  // Handle voice search button click
-  const handleVoiceSearch = () => {
-    // TODO: Integrate with voice-search.ts for full voice recognition
-    // For now, show a placeholder message
-    alert(
-      "Voice search coming soon! This feature will allow you to recite verses and search instantly."
-    );
-    setIsListening(!isListening);
-  };
+  // Stop recognition and clean up
+  const stopRecognition = useCallback(() => {
+    if (recognizerRef.current) {
+      recognizerRef.current.stop();
+      recognizerRef.current = null;
+    }
+    setIsListening(false);
+  }, []);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (recognizerRef.current) {
+        recognizerRef.current.abort();
+        recognizerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Handle voice search button click: toggle speech recognition
+  const handleVoiceSearch = useCallback(() => {
+    if (isListening) {
+      stopRecognition();
+      return;
+    }
+
+    setVoiceError(null);
+
+    if (!ArabicSpeechRecognizer.isSupported()) {
+      setVoiceError(
+        "Speech recognition is not supported in this browser. Try Chrome or Edge."
+      );
+      return;
+    }
+
+    const recognizer = new ArabicSpeechRecognizer({
+      language: "ar-SA",
+      continuous: true,
+      interimResults: true,
+      onResult: (result: RecognitionResult) => {
+        // Update query with recognized text
+        setQuery(result.transcript);
+        if (result.isFinal) {
+          // Trigger immediate search on final result
+          setDebouncedQuery(result.transcript);
+        }
+      },
+      onError: (errorMsg: string) => {
+        setVoiceError(errorMsg);
+        stopRecognition();
+      },
+      onEnd: () => {
+        // Recognition ended (after auto-restart retries exhausted)
+        setIsListening(false);
+        recognizerRef.current = null;
+      },
+      onStart: () => {
+        setIsListening(true);
+      },
+    });
+
+    recognizerRef.current = recognizer;
+    recognizer.start();
+  }, [isListening, stopRecognition]);
 
   // Handle Enter key to search immediately
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -111,9 +172,15 @@ export default function SearchPage() {
 
             {isListening && (
               <div className="mt-4 flex items-center justify-center gap-2 text-primary">
-                <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
+                <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
                 Listening... Recite a verse to search
               </div>
+            )}
+
+            {voiceError && (
+              <p className="mt-2 text-center text-sm text-destructive">
+                {voiceError}
+              </p>
             )}
           </CardContent>
         </Card>

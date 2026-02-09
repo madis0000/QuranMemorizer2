@@ -42,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
+import { FluencyDisplay } from "@/components/voice/FluencyDisplay";
 import { RecitationTracker } from "@/components/voice/RecitationTracker";
 import { VoiceRecorder } from "@/components/voice/VoiceRecorder";
 
@@ -80,7 +81,9 @@ export default function MemorizePage() {
     interimText,
     finalText,
     handleTranscript,
+    handleEngineChange,
     compareAndScore,
+    fluencyMetrics,
     reset: resetVoice,
   } = useVoiceRecognition({
     originalText: currentText,
@@ -441,12 +444,20 @@ export default function MemorizePage() {
                   interimText={interimText}
                   finalText={finalText}
                   isListening={isRecording}
+                  originalWords={currentWords}
+                />
+
+                {/* Fluency Metrics */}
+                <FluencyDisplay
+                  metrics={fluencyMetrics}
+                  isActive={isRecording}
                 />
 
                 {/* Voice Recorder */}
                 <VoiceRecorder
                   onTranscript={handleTranscript}
                   onRecordingChange={setIsRecording}
+                  onEngineChange={handleEngineChange}
                   disabled={!session.isActive}
                 />
 

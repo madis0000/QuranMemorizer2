@@ -44,3 +44,12 @@ next-env.d.ts
 
 # Windows artifacts
 nul
+
+# IDE/tool auto-generated skill files
+.agents/
+.claude/skills/
+.cursor/
+.windsurf/
+
+# Claude local settings
+.claude/settings.local.json

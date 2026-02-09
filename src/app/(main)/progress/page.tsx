@@ -372,22 +372,29 @@ export default function ProgressPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {badgeData.slice(0, 5).map((badge, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-accent/50"
-                    >
-                      <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-                        <Trophy className="h-5 w-5 text-purple-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{badge.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {badge.date}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                  {badgeData
+                    .slice(0, 5)
+                    .map(
+                      (
+                        badge: { name: string; date: string },
+                        index: number
+                      ) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-accent/50"
+                        >
+                          <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                            <Trophy className="h-5 w-5 text-purple-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{badge.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {badge.date}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    )}
                 </div>
               )}
             </CardContent>

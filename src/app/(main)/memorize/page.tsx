@@ -19,15 +19,16 @@ import type { ComparisonResult } from "@/lib/memorization/mistakeDetector";
 import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
 import {
   useSessionStore,
+  type HideMode,
   type MistakeSensitivity,
   type RevealMode,
   type SessionSummary as SessionSummaryType,
 } from "@/stores/sessionStore";
-import { HiddenVerse } from "@/components/memorization/HiddenVerse";
 import {
   MistakeHighlight,
   MistakeList,
 } from "@/components/memorization/MistakeHighlight";
+import { ProgressiveHideModes } from "@/components/memorization/ProgressiveHideModes";
 import { SessionSummary } from "@/components/memorization/SessionSummary";
 import { SurahAyahPicker } from "@/components/memorization/SurahAyahPicker";
 import { Button } from "@/components/ui/button";
@@ -61,9 +62,15 @@ export default function MemorizePage() {
   );
   const ayahs: Ayah[] = ayahsData ?? [];
 
-  // Get current ayah
+  // Get current ayah and surrounding ayahs for context_recall mode
   const currentAyah = ayahs.find(
     (a) => a.numberInSurah === session.currentAyah
+  );
+  const previousAyah = ayahs.find(
+    (a) => a.numberInSurah === session.currentAyah - 1
+  );
+  const nextAyah = ayahs.find(
+    (a) => a.numberInSurah === session.currentAyah + 1
   );
   const currentWords = currentAyah?.text?.split(/\s+/).filter(Boolean) ?? [];
   const currentText = currentAyah?.text ?? "";
@@ -200,7 +207,60 @@ export default function MemorizePage() {
                     <Settings2 className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent
+                  align="end"
+                  className="max-h-[500px] overflow-y-auto"
+                >
+                  <DropdownMenuLabel>Hide Mode</DropdownMenuLabel>
+                  {(
+                    [
+                      { value: "full_hide", label: "Full Hide" },
+                      { value: "first_letter", label: "First Letter" },
+                      { value: "random_blank", label: "Random Blank" },
+                      { value: "keyword_mode", label: "Keywords Only" },
+                      {
+                        value: "translation_recall",
+                        label: "Translation Recall",
+                      },
+                      { value: "context_recall", label: "Context Recall" },
+                      { value: "reverse_recall", label: "Reverse Recall" },
+                      { value: "audio_recall", label: "Audio Recall" },
+                    ] as { value: HideMode; label: string }[]
+                  ).map((mode) => (
+                    <DropdownMenuItem
+                      key={mode.value}
+                      onClick={() => session.setHideMode(mode.value)}
+                      className={
+                        session.hideMode === mode.value ? "font-semibold" : ""
+                      }
+                    >
+                      {mode.label}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+
+                  {session.hideMode === "random_blank" && (
+                    <>
+                      <DropdownMenuLabel>
+                        Difficulty (Random Blank)
+                      </DropdownMenuLabel>
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <DropdownMenuItem
+                          key={level}
+                          onClick={() => session.setHideDifficulty(level)}
+                          className={
+                            session.hideDifficulty === level
+                              ? "font-semibold"
+                              : ""
+                          }
+                        >
+                          Level {level} ({level * 20}% hidden)
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+
                   <DropdownMenuLabel>Reveal Mode</DropdownMenuLabel>
                   {(["word", "phrase", "ayah", "line"] as RevealMode[]).map(
                     (mode) => (
@@ -335,11 +395,24 @@ export default function MemorizePage() {
                     wordResults={comparisonResult.wordResults}
                   />
                 ) : (
-                  <HiddenVerse
+                  <ProgressiveHideModes
                     words={currentWords}
+                    hideMode={session.hideMode}
+                    hideDifficulty={session.hideDifficulty}
                     revealedIndices={session.revealedWords}
                     isHidden={session.isHidden}
                     onWordClick={(index) => session.revealWord(index)}
+                    translation={undefined} // TODO: Fetch translation using useTranslation hook
+                    previousVerse={previousAyah?.text}
+                    nextVerse={nextAyah?.text}
+                    onPlayAudio={() => {
+                      // TODO: Implement audio playback with audio store
+                      console.log(
+                        "Play audio for ayah:",
+                        currentAyah?.numberInSurah
+                      );
+                    }}
+                    verseKey={`${session.surahNumber}:${session.currentAyah}`}
                   />
                 )}
 

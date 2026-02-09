@@ -4,6 +4,16 @@ export type SessionMode = "read" | "memorize" | "listen" | "review";
 export type RevealMode = "word" | "phrase" | "ayah" | "line";
 export type MistakeSensitivity = "strict" | "normal" | "lenient";
 
+export type HideMode =
+  | "full_hide" // All words hidden (current behavior)
+  | "first_letter" // Show only first Arabic letter of each word
+  | "random_blank" // Progressive: hide 20%→40%→60%→80%→100%
+  | "translation_recall" // Show translation, recite Arabic
+  | "audio_recall" // Play audio, recite without text
+  | "reverse_recall" // Given last word, recite previous verse
+  | "context_recall" // Show surrounding verses, fill missing one
+  | "keyword_mode"; // Only show content words, hide particles
+
 export interface Mistake {
   id: string;
   surahNumber: number;
@@ -30,6 +40,8 @@ interface SessionState {
 
   // Memorization settings
   revealMode: RevealMode;
+  hideMode: HideMode;
+  hideDifficulty: number; // 1-5 for random_blank progression
   mistakeSensitivity: MistakeSensitivity;
   isHidden: boolean;
   revealedWords: number[];
@@ -57,6 +69,8 @@ interface SessionState {
   previousAyah: () => void;
 
   setRevealMode: (mode: RevealMode) => void;
+  setHideMode: (mode: HideMode) => void;
+  setHideDifficulty: (level: number) => void;
   setMistakeSensitivity: (sensitivity: MistakeSensitivity) => void;
   toggleHidden: () => void;
   revealWord: (wordIndex: number) => void;
@@ -96,6 +110,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   currentAyah: 1,
 
   revealMode: "word",
+  hideMode: "full_hide",
+  hideDifficulty: 3,
   mistakeSensitivity: "normal",
   isHidden: true,
   revealedWords: [],
@@ -174,6 +190,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     })),
 
   setRevealMode: (mode) => set({ revealMode: mode }),
+
+  setHideMode: (mode) => set({ hideMode: mode }),
+
+  setHideDifficulty: (level) => set({ hideDifficulty: level }),
 
   setMistakeSensitivity: (sensitivity) =>
     set({ mistakeSensitivity: sensitivity }),

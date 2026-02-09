@@ -3,6 +3,7 @@ export { useQuranStore } from "./quranStore";
 export { useAudioStore } from "./audioStore";
 export { useSessionStore } from "./sessionStore";
 export { useUserStore } from "./userStore";
+export { useGamificationStore } from "./gamificationStore";
 
 // Export types
 export type { Surah, Ayah, MushafEdition, ViewMode } from "./quranStore";
@@ -18,3 +19,5 @@ export type {
 } from "./sessionStore";
 
 export type { Theme, UserSettings } from "./userStore";
+
+export type { League } from "./gamificationStore";

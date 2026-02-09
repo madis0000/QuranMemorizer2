@@ -4,7 +4,7 @@
  * Stores Quran text, translations, audio metadata, and user data for offline access.
  */
 
-import type { Ayah, MushafPage, Surah } from "@/types/quran";
+import type { Ayah, MushafPage, SearchResult, Surah } from "@/types/quran";
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 
 // ===== Helper Functions =====
@@ -459,7 +459,7 @@ export async function buildSearchIndex(
 export async function searchOffline(
   query: string,
   limit: number = 20
-): Promise<Array<{ surahNumber: number; ayahNumber: number; text: string }>> {
+): Promise<SearchResult[]> {
   const db = await getDB();
   const normalizedQuery = normalizeForSearch(query);
   const all = await db.getAll("searchIndex");
@@ -471,6 +471,9 @@ export async function searchOffline(
       surahNumber: entry.surahNumber,
       ayahNumber: entry.ayahNumber,
       text: entry.text,
+      highlightedText: entry.text, // No highlighting for offline search
+      matchScore: 1,
+      translation: undefined, // No translation in offline index
     }));
 
   return results;

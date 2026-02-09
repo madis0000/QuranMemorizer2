@@ -12,7 +12,9 @@ import {
   User,
   Volume2,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 
+import { useUpdateSettings } from "@/hooks/use-progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -21,9 +23,17 @@ import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage() {
   const { settings, updateSettings, setTheme } = useUserStore();
-  const { fontSize, setFontSize, mushafEdition, setMushafEdition } =
-    useQuranStore();
+  const {
+    fontSize,
+    setFontSize,
+    mushafEdition,
+    setMushafEdition,
+    translationLanguage,
+    setTranslationLanguage,
+  } = useQuranStore();
   const { playbackSpeed, setPlaybackSpeed } = useAudioStore();
+
+  const updateSettingsMutation = useUpdateSettings();
 
   const themes = [
     { value: "light", label: "Light", icon: Sun },
@@ -38,6 +48,39 @@ export default function SettingsPage() {
     { value: "indopak_15", label: "IndoPak 15 Lines" },
     { value: "indopak_13", label: "IndoPak 13 Lines" },
   ] as const;
+
+  const translationLanguages = [
+    { value: "en", label: "English" },
+    { value: "ur", label: "Urdu" },
+    { value: "fr", label: "French" },
+    { value: "es", label: "Spanish" },
+    { value: "id", label: "Indonesian" },
+  ];
+
+  const handleThemeChange = (theme: "light" | "dark" | "system") => {
+    setTheme(theme);
+    updateSettingsMutation.mutate({ theme });
+  };
+
+  const handleSoundEnabledChange = (soundEnabled: boolean) => {
+    updateSettings({ soundEnabled });
+    updateSettingsMutation.mutate({ soundEnabled });
+  };
+
+  const handleDailyReminderChange = (dailyReminder: boolean) => {
+    updateSettings({ dailyReminder });
+    updateSettingsMutation.mutate({ dailyReminder });
+  };
+
+  const handleStreakReminderChange = (streakReminder: boolean) => {
+    updateSettings({ streakReminder });
+    updateSettingsMutation.mutate({ streakReminder });
+  };
+
+  const handleGoalReminderChange = (goalReminder: boolean) => {
+    updateSettings({ goalReminder });
+    updateSettingsMutation.mutate({ goalReminder });
+  };
 
   return (
     <div className="min-h-screen p-4 lg:p-8">
@@ -73,7 +116,7 @@ export default function SettingsPage() {
                       variant={
                         settings.theme === theme.value ? "default" : "outline"
                       }
-                      onClick={() => setTheme(theme.value)}
+                      onClick={() => handleThemeChange(theme.value)}
                       className="flex-1"
                     >
                       <theme.icon className="mr-2 h-4 w-4" />
@@ -133,12 +176,16 @@ export default function SettingsPage() {
               {/* Translation Language */}
               <div>
                 <Label className="mb-3 block">Translation Language</Label>
-                <select className="w-full border border-border rounded-md px-3 py-2 bg-background">
-                  <option value="en">English</option>
-                  <option value="ur">Urdu</option>
-                  <option value="fr">French</option>
-                  <option value="es">Spanish</option>
-                  <option value="id">Indonesian</option>
+                <select
+                  className="w-full border border-border rounded-md px-3 py-2 bg-background"
+                  value={translationLanguage}
+                  onChange={(e) => setTranslationLanguage(e.target.value)}
+                >
+                  {translationLanguages.map((lang) => (
+                    <option key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </CardContent>
@@ -180,9 +227,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={settings.soundEnabled}
-                  onCheckedChange={(checked) =>
-                    updateSettings({ soundEnabled: checked })
-                  }
+                  onCheckedChange={handleSoundEnabledChange}
                 />
               </div>
             </CardContent>
@@ -206,9 +251,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={settings.dailyReminder}
-                  onCheckedChange={(checked) =>
-                    updateSettings({ dailyReminder: checked })
-                  }
+                  onCheckedChange={handleDailyReminderChange}
                 />
               </div>
 
@@ -221,9 +264,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={settings.streakReminder}
-                  onCheckedChange={(checked) =>
-                    updateSettings({ streakReminder: checked })
-                  }
+                  onCheckedChange={handleStreakReminderChange}
                 />
               </div>
 
@@ -236,9 +277,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={settings.goalReminder}
-                  onCheckedChange={(checked) =>
-                    updateSettings({ goalReminder: checked })
-                  }
+                  onCheckedChange={handleGoalReminderChange}
                 />
               </div>
             </CardContent>
@@ -256,7 +295,11 @@ export default function SettingsPage() {
               <Button variant="outline" className="w-full">
                 Manage Account
               </Button>
-              <Button variant="outline" className="w-full text-destructive">
+              <Button
+                variant="outline"
+                className="w-full text-destructive"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
                 Sign Out
               </Button>
             </CardContent>

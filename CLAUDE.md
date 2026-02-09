@@ -1,236 +1,629 @@
-# QuranMemorizer 2.0 - Project Context
+# QuranMemorizer 2.0 - The World's Most Advanced Quran Memorization Platform
 
-## Project Overview
+## Vision
 
-A comprehensive Quran memorization web application inspired by Tarteel.ai, featuring AI-powered voice recognition for Arabic Quran recitation, real-time mistake detection, and gamified learning experiences.
+Build the definitive Quran memorization app that combines **scientifically-backed learning science** (FSRS spaced repetition, active recall, interleaving), **AI-powered voice recognition** with real-time Tajweed coaching, **deep gamification** that makes memorization addictive (Duolingo-level engagement), and **beautiful page-accurate Mushaf rendering** — all wrapped in a social, community-driven experience. No existing app combines all of these. We will.
+
+## V1 Legacy (github.com/madis0000/QuranMemorizer)
+
+The V1 repo contains battle-tested algorithms to port into V2:
+
+- **6-Layer Tajweed System**: text detection, API-based rule mapping, HTML word segmentation, real-time audio analysis (FFT), coaching panel, animated visuals
+- **Arabic Utils**: 10-step normalization pipeline, Muqatta'at letter handling, multi-strategy word matching, greedy word alignment with 3-word lookahead
+- **Gamification Engine**: 19 achievements across 5 categories, 4 rarity tiers, 6 mastery levels, streak multipliers, daily goals
+- **SM-2 SRS**: Full implementation with Ebbinghaus forgetting curve and priority scoring
+- **Thematic Contexts**: 10 curated memorization contexts (Ayat al-Kursi, Morning Protection, etc.)
+- **Audio Analysis**: Web Audio API with 2048-point FFT, rule-specific weighted scoring (nasality, smoothness, intensity, duration)
+- **Voice Shazam**: Real-time voice verse detection with confidence scoring and auto-navigation
+- **Memory Challenge Mode**: Progressive hints preserving Tajweed colors in partial reveals
 
 ## Tech Stack
 
-- **Framework**: Next.js 14+ with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui
-- **State Management**: Zustand for global state, React Query for server state
-- **Audio Processing**: Web Audio API, MediaRecorder API
-- **Speech Recognition**: Web Speech API (browser) + Whisper API fallback
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: NextAuth.js
-- **Quran Data**: AlQuran.cloud API, QUL (Quranic Universal Library)
+- **Framework**: Next.js 16+ with App Router (React 19)
+- **Language**: TypeScript (strict mode)
+- **Styling**: Tailwind CSS 4 + shadcn/ui
+- **State Management**: Zustand 5 (persisted) + TanStack React Query 5
+- **Audio Processing**: Web Audio API, MediaRecorder API, Howler.js
+- **Speech Recognition**: Web Speech API (ar-SA) + Whisper API fallback (tarteel-ai/whisper-base-ar-quran)
+- **Database**: PostgreSQL with Prisma 7 ORM (PrismaPg adapter)
+- **Authentication**: NextAuth.js v5 (Google, Facebook, Apple, Credentials)
+- **Quran Data**: AlQuran.cloud API, Quran.com API, QUL (Quranic Universal Library)
+- **SRS Algorithm**: FSRS-6 (replacing SM-2, via `ts-fsrs` package)
+- **PWA**: @ducanh2912/next-pwa with offline-first architecture
+- **i18n**: 3 languages (English, Arabic, Urdu)
 
-## Project Structure
+## Current Status (V2 Baseline)
+
+| Area              | Backend | Frontend | Notes                                                 |
+| ----------------- | ------- | -------- | ----------------------------------------------------- |
+| Quran Reader      | 95%     | 90%      | 7 editions, page-accurate, prefetch                   |
+| Memorization      | 100%    | 85%      | Voice + compare + session + save                      |
+| Listen            | 100%    | 30%      | AudioPlayer class ready, UI mockup only               |
+| Search            | 100%    | 20%      | API + hooks ready, hardcoded UI                       |
+| Progress          | 100%    | 25%      | APIs + hooks ready, hardcoded UI                      |
+| Settings          | 70%     | 70%      | Local only, no server sync                            |
+| Voice Recognition | 80%     | 80%      | Web Speech works, Whisper fallback not auto-triggered |
+| Mistake Detection | 100%    | 100%     | LCS + Levenshtein, 3 sensitivity levels               |
+| SRS (SM-2)        | 100%    | 0%       | Full backend, zero UI                                 |
+| Audio Player      | 100%    | 10%      | Singleton + hook ready, not wired to UI               |
+| Offline/IndexedDB | 90%     | 85%      | 7 object stores, background sync                      |
+| Gamification      | 100%    | 20%      | 15 badges defined, not auto-triggered                 |
+| Auth              | 95%     | 95%      | 4 providers, protected routes                         |
+| Tajweed Colors    | 0%      | 0%       | Types defined, not rendered                           |
+
+**Critical gaps to fill**: Tajweed system (port from V1), FSRS upgrade, listen/search/progress page wiring, SRS review UI, badge auto-triggering, settings server sync, similar verse trainer, gamification depth.
+
+## Innovative Features (What Makes Us World-Class)
+
+### 1. FSRS-6 Spaced Repetition (Replacing SM-2)
+
+The Free Spaced Repetition Scheduler achieves 99.6% superiority over SM-2 in A/B tests, with 20-30% fewer reviews for the same retention. Uses the Three Component Model (Stability, Retrievability, Difficulty) with 21 optimizable parameters trained on 700M+ reviews. Drop-in via `ts-fsrs` npm package.
+
+### 2. Six-Layer Tajweed System (Ported from V1 + Enhanced)
+
+| Layer                | Description                                                                                  |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| 1. Text Detection    | Character-by-character analysis: Qalqalah, Noon Sakinah, Idgham, Ikhfa, Iqlab, Lam Shamsiyah |
+| 2. API Rule Mapping  | Parse `<tajweed>` HTML from Quran Foundation API, map 30+ class variants                     |
+| 3. HTML Segmentation | Split Tajweed-marked HTML into words preserving all markup                                   |
+| 4. Audio Analysis    | Web Audio API FFT: duration, volume, pitch, nasality, clarity, smoothness                    |
+| 5. Coaching Panel    | Real-time rule display, Madd timing circle, accuracy toasts                                  |
+| 6. Animated Visuals  | Per-rule components: MaddVisual, QalqalahVisual, IkhfaVisual, etc.                           |
+
+**Tajweed Color Scheme:**
+| Rule | Color | Hex |
+|------|-------|-----|
+| Qalqalah | Blue | `#0088ff` |
+| Ikhfa | Green | `#169777` |
+| Iqlab | Orange | `#ff7e1e` |
+| Idgham (Ghunna) | Magenta | `#d500b7` |
+| Idgham (No Ghunna) | Gray | `#aaaaaa` |
+| Ghunna | Pink | `#ff69b4` |
+| Madd Normal | Magenta | `#d500b7` |
+| Madd Obligatory | Red | `#ff0000` |
+| Lam Shamsiyah | Gray | `#aaaaaa` |
+
+### 3. Similar Verse Trainer (NO COMPETITOR HAS THIS)
+
+The #1 challenge for Huffaz is confusing similar verses (mutashabihat). We build:
+
+- Automatic detection of verses with >70% word overlap
+- Side-by-side comparison highlighting differences
+- Targeted drills: given a verse, recite the correct continuation (not the similar one)
+- "Which surah?" quick quiz
+- Difficulty scaling based on mistake history
+- Pre-built sets: common confusion pairs across the Quran
+
+### 4. Garden of Jannah (Visual Growth Metaphor)
+
+Inspired by Forest app but Quran-themed:
+
+- Each memorized verse grows a **flower** in your garden
+- Each memorized page grows a **tree**
+- Each memorized surah builds a **landmark** (fountain, palace, gate)
+- Each completed juz creates a **garden section**
+- Abandoned sessions wilt your recent growth (loss aversion)
+- Complete the Quran = Full Jannah garden with rivers, palaces, and light
+- Garden is shareable and visually stunning
+- "Hasanat" currency earned through practice, spent on garden decorations
+
+### 5. Quran-Themed Leagues (Duolingo-Style Competition)
+
+Weekly competitive leagues with promotion/demotion:
+| League | Tier | Promotion | Demotion |
+|--------|------|-----------|----------|
+| Talib (Student) | Bronze | Top 10 advance | None |
+| Qari (Reciter) | Silver | Top 10 advance | Bottom 5 demote |
+| Hafiz (Memorizer) | Gold | Top 10 advance | Bottom 5 demote |
+| Sheikh (Scholar) | Platinum | Top 3 advance | Bottom 5 demote |
+| Imam (Leader) | Diamond | Stay | Bottom 5 demote |
+
+- XP earned from: practice sessions, perfect accuracy, streak maintenance, league challenges
+- Weekly reset with promotion/demotion animations
+- League-specific challenges and rewards
+- Friend leagues for competing with people you know
+
+### 6. Smart Curriculum Generator (AI-Powered Study Plans)
+
+- Input a goal: "Memorize Juz Amma in 3 months" or "Complete Surah Al-Baqarah by Ramadan"
+- AI generates a daily study plan considering:
+  - Optimal FSRS intervals
+  - User's historical learning speed
+  - Available daily time budget
+  - Interleaving of new learning + review
+  - Difficulty curve (easier surahs first)
+  - Similar verse awareness (don't learn confusing verses on same day)
+- Dynamic adjustment based on actual progress
+- Calendar view with daily targets
+- Push notification reminders at optimal study times
+
+### 7. Memory Palace Mode (Mushaf as Spatial Memory)
+
+The physical Mushaf IS a memory palace — every Hafiz navigates by page position:
+
+- **Page Mastery Heatmap**: Visual grid of all 604 pages, colored by strength
+- **Position Recall Drills**: "What's the first verse on page 342?"
+- **Page-Level SRS**: Schedule review at page granularity, not just ayah
+- **Visual Anchoring**: Highlight where on the page each verse starts (top/middle/bottom)
+- **Mushaf Navigation Quiz**: Given a verse, identify which page it's on
+
+### 8. Progressive Hide Modes (Multiple Strategies)
+
+| Mode               | Description                                              |
+| ------------------ | -------------------------------------------------------- |
+| Full Hide          | All words hidden as `___`, classic memorization test     |
+| First Letter       | Show only first letter of each word as hint              |
+| Random Blank       | Hide 20% → 40% → 60% → 80% → 100% of words progressively |
+| Translation Recall | Show translation, recite Arabic from memory              |
+| Audio Recall       | Listen to audio, then recite without text                |
+| Reverse Recall     | Given last word, recite the previous verse               |
+| Context Recall     | Given surrounding verses, fill in the missing one        |
+| Keyword Mode       | Only show key content words, hide particles/prepositions |
+
+### 9. Challenge Mode (Competitive Practice)
+
+- **Speed Challenge**: Recite a page/surah as fast as possible with accuracy threshold
+- **Accuracy Challenge**: Perfect recitation required (Tajweed-strict mode)
+- **Endurance Challenge**: How many pages can you recite without a mistake?
+- **Random Verse Challenge**: Random verse appears, recite it from memory
+- **Daily Challenge**: New challenge every day with bonus XP
+- **Friend Challenges**: Challenge a friend to beat your score
+- **Timed Quizzes**: Multiple choice (which surah?), fill-in-the-blank, audio identification
+
+### 10. Tajweed Mastery Path (Rule-by-Rule Progression)
+
+- Dedicated learning path for each Tajweed rule
+- Progressive unlocking: Noon Sakinah → Meem Sakinah → Qalqalah → Madd → etc.
+- Per-rule practice with audio analysis scoring
+- Rule mastery badges (bronze/silver/gold/master)
+- Real-time coaching during recitation showing active rules
+- Expected vs actual pronunciation comparison
+- Animated visualizations explaining each rule
+
+### 11. Recitation Replay & Diff
+
+- Record every practice session audio
+- Replay with visual annotation: correct words green, mistakes red
+- Side-by-side waveform comparison (user vs. Qari)
+- Tajweed rule accuracy overlay on timeline
+- Share recordings with teacher/study partner for feedback
+- Historical progress: compare your recitation from week 1 vs. now
+
+### 12. Hifz Circles (Social Accountability)
+
+- Create/join study groups (2-50 members)
+- Group streaks (all members must practice daily)
+- Weekly group challenges with combined XP
+- Study partner matching (similar level, timezone, goals)
+- Group leaderboard within circles
+- Teacher role with student progress dashboard
+- Voice notes for feedback/encouragement
+- Scheduled group review sessions
+
+### 13. Traditional Methods (Digitized)
+
+- **Mauritanian Method**: Mastery gates — must achieve 95%+ accuracy before advancing to next verse
+- **3x3 Method**: Read verse 3 times → recite from memory 3 times → combine with previous verses
+- **Ottoman Method**: Page-by-page with bi-weekly review cycles
+- **Sabaq/Sabqi/Manzil System**: New lesson (Sabaq), recent review (Sabqi), older review (Manzil) — all tracked separately
+- Configurable method selection in settings
+
+### 14. Blessed Time Bonuses
+
+- **Fajr Bonus (4AM-7AM)**: 2x XP during blessed morning hours
+- **Last Third of Night**: 3x XP during tahajjud time
+- **Friday Al-Kahf**: Special badge and bonus for reciting Al-Kahf on Friday
+- **Ramadan Mode**: Enhanced goals, special Ramadan badges, Khatm tracker (complete Quran in 30 days)
+- **Prayer Time Integration**: Smart notifications aligned with local prayer times
+- Adjusts automatically based on user's location/timezone
+
+### 15. Fluency Metrics Dashboard
+
+- Words per minute (WPM) tracking over time
+- Pause frequency and duration analysis
+- Confidence score (hesitation detection)
+- Tajweed accuracy percentage per rule type
+- Session-over-session improvement graphs
+- Verse-level strength radar chart
+- Personalized recommendations based on weak areas
+
+## Architecture
+
+### Project Structure
 
 ```
 src/
-├── app/                    # Next.js App Router pages
-│   ├── (auth)/            # Authentication routes
-│   ├── (main)/            # Main app routes
-│   │   ├── quran/         # Quran reader
-│   │   ├── memorize/      # Memorization mode
-│   │   ├── listen/        # Listening mode
-│   │   ├── search/        # Voice & text search
-│   │   ├── progress/      # Analytics & progress
-│   │   └── settings/      # User settings
-│   └── api/               # API routes
+├── app/
+│   ├── (auth)/                 # Login, register
+│   ├── (main)/                 # Authenticated routes
+│   │   ├── quran/              # Mushaf reader
+│   │   ├── memorize/           # Memorization mode + review
+│   │   ├── listen/             # Audio player
+│   │   ├── search/             # Text + voice search
+│   │   ├── progress/           # Analytics dashboard
+│   │   ├── tajweed/            # [NEW] Tajweed learning path
+│   │   ├── garden/             # [NEW] Garden of Jannah
+│   │   ├── challenges/         # [NEW] Challenge modes
+│   │   ├── circles/            # [NEW] Hifz circles
+│   │   ├── similar-verses/     # [NEW] Similar verse trainer
+│   │   ├── curriculum/         # [NEW] Smart study plans
+│   │   └── settings/           # User settings
+│   └── api/
+│       ├── auth/               # NextAuth
+│       ├── quran/              # [NEW] Surah, ayah, search, audio
+│       ├── recitation/         # Transcribe, compare, search
+│       ├── tajweed/            # [NEW] Rules, progress, audio analysis
+│       ├── progress/           # Sessions, streaks, goals, SRS
+│       ├── gamification/       # [NEW] XP, leagues, achievements, garden
+│       ├── social/             # Leaderboard, circles, challenges
+│       ├── curriculum/         # [NEW] Study plans, daily targets
+│       └── user/               # Settings, bookmarks, badges
 ├── components/
-│   ├── ui/                # Base UI components (shadcn)
-│   ├── quran/             # Quran-specific components
-│   │   ├── MushafPage/    # Page-accurate Mushaf rendering
-│   │   ├── MushafLine/    # Single line with justification
-│   │   ├── MushafWord/    # Word with Tajweed colors
-│   │   ├── AyahDisplay/   # Verse display (adaptive mode)
-│   │   ├── SurahSelector/ # Surah navigation
-│   │   ├── EditionSelector/ # Mushaf edition picker
-│   │   └── AudioPlayer/   # Recitation player
-│   ├── memorization/      # Memorization components
-│   │   ├── HiddenVerse/   # Hidden verse mode
-│   │   ├── MistakeHighlight/
-│   │   └── ProgressiveReveal/
-│   ├── voice/             # Voice recognition components
-│   │   ├── VoiceRecorder/
-│   │   ├── VoiceSearch/
-│   │   └── RecitationTracker/
-│   └── gamification/      # Gamification components
-│       ├── StreakDisplay/
-│       ├── BadgeSystem/
-│       └── Leaderboard/
-├── data/                   # Static Quran data
-│   └── mushaf-layouts/    # Layout databases from QUL
-│       ├── madinah-1405h.json
-│       ├── madinah-1421h.json
-│       ├── madinah-1441h.json
-│       ├── indopak-15-lines.json
-│       ├── indopak-13-lines.json
-│       └── words.json     # Word database
+│   ├── ui/                     # shadcn/ui base components
+│   ├── quran/                  # Mushaf rendering components
+│   ├── memorization/           # Hidden verse, mistakes, reveal, session
+│   ├── tajweed/                # [NEW] Detector, coaching, visuals, practice
+│   ├── voice/                  # Recorder, tracker, search
+│   ├── gamification/           # Streaks, badges, leagues, garden, challenges
+│   ├── social/                 # Circles, leaderboard, teacher dashboard
+│   ├── curriculum/             # [NEW] Study plan, calendar, daily targets
+│   └── pwa/                    # Install prompt, offline indicator
 ├── lib/
-│   ├── quran/             # Quran data utilities
-│   │   ├── api.ts         # API fetching
-│   │   ├── mushafRenderer.ts # Page rendering logic
-│   │   └── layoutParser.ts # Parse layout databases
-│   ├── speech/            # Speech recognition utilities
-│   ├── audio/             # Audio processing utilities
-│   └── analytics/         # Progress tracking utilities
-├── hooks/                 # Custom React hooks
-├── stores/                # Zustand stores
-├── types/                 # TypeScript types
-├── fonts/                 # Arabic fonts
-│   ├── KFGQPC/           # King Fahd fonts
-│   ├── Amiri/            # Amiri Arabic font
-│   └── IndoPak/          # Nastaleeq fonts
-└── utils/                 # Utility functions
+│   ├── quran/                  # API, layout, data
+│   ├── speech/                 # Recognition, whisper, voice-search
+│   ├── memorization/           # Mistake detector, arabic-utils, SRS (FSRS)
+│   ├── tajweed/                # [NEW] Detector, rule-mapper, html-utils, audio-analyzer
+│   ├── audio/                  # Player, recorder
+│   ├── analytics/              # Streaks, badges
+│   ├── gamification/           # [NEW] XP, leagues, achievements, garden, challenges
+│   ├── similar-verses/         # [NEW] Detection, comparison, drills
+│   ├── curriculum/             # [NEW] Plan generator, daily scheduler
+│   ├── storage/                # IndexedDB
+│   ├── offline/                # Background sync
+│   ├── fonts/                  # Arabic font loading
+│   └── i18n/                   # Internationalization
+├── hooks/                      # React hooks
+├── stores/                     # Zustand stores
+├── types/                      # TypeScript types
+└── data/                       # Static data (mushaf layouts)
 ```
 
-## Core Features to Implement
-
-### 1. Quran Reading Experience
-
-- **Page-Accurate Mushaf Rendering** (CRITICAL for memorization)
-  - Madinah 1405H (KFGQPC V1) - 604 pages, 15 lines
-  - Madinah 1421H (KFGQPC V2) - 604 pages, 15 lines
-  - Madinah 1441H (KFGQPC V4) - 604 pages, 15 lines
-  - IndoPak 15 lines (Qudratullah) - 610 pages
-  - IndoPak 13 lines (Taj company) - 849 pages
-  - IndoPak 16 lines - 548 pages
-  - Digital Khatt edition
-- Exact page/line/word positioning matching physical Mushaf
-- Tajweed color coding toggle
-- Adaptive mode for responsive reading
-- Dark/Light/Sepia themes
-- Translation display (112+ languages)
-- Tafsir integration
-- Word-by-word translation with tooltips
-- Transliteration support
-- Bookmarks and notes
-
-### 2. Voice Recognition & Recitation
-
-- Real-time recitation follow-along
-- Word-by-word tracking as user recites
-- Voice search ("Shazam for Quran")
-- Arabic speech-to-text conversion
-- Support for different recitation styles
-
-### 3. Memorization Mode
-
-- Hidden verses mode
-- Progressive verse revealing
-- Peeking feature (tap to reveal)
-- Word-level mistake detection
-- Skipped word detection
-- Tashkeel (diacritical) error flagging
-- Live correction (recited vs correct comparison)
-- Session recording and playback
-
-### 4. Listening Mode
-
-- Multiple Qari selections
-- Ayah-by-ayah playback
-- Surah playback
-- Background listening
-- Playback speed control
-- Loop/repeat functionality
-- Offline audio download
-
-### 5. Progress & Analytics
-
-- Smart goals (daily, weekly, custom)
-- Streak tracking with heatmaps
-- Surah strength assessment
-- Historical mistakes log
-- Session history
-- Memorization progress tracker
-- Custom reports and insights
-
-### 6. Gamification
-
-- Achievement badges
-- Daily streaks
-- Challenges and milestones
-- Leaderboards
-- Groups/community features
-
-### 7. Settings & Personalization
-
-- Multiple Mushaf scripts
-- Theme customization
-- Notification preferences
-- Language settings
-- Audio preferences
-- Goal settings
-
-## API Endpoints Structure
+### API Endpoints
 
 ```
 /api/
-├── auth/                  # Authentication
+├── auth/
+│   ├── register/               # POST: Email/password registration
+│   └── [...nextauth]/          # NextAuth handlers
 ├── quran/
-│   ├── surah/            # Surah data
-│   ├── ayah/             # Ayah data
-│   ├── search/           # Text search
-│   └── audio/            # Audio URLs
+│   ├── surah/                  # GET: Surah data with ayahs
+│   ├── ayah/                   # GET: Single ayah with word data
+│   ├── search/                 # GET: Text search, POST: Voice search
+│   ├── audio/                  # GET: Audio URLs for reciter/surah
+│   └── similar/                # [NEW] GET: Similar verses for a given ayah
 ├── recitation/
-│   ├── transcribe/       # Voice to text
-│   ├── compare/          # Compare recitation
-│   └── mistakes/         # Mistake detection
+│   ├── transcribe/             # POST: Audio -> text via Whisper
+│   ├── compare/                # POST: Compare recited vs original
+│   └── search/                 # GET/POST: Text/voice verse search
+├── tajweed/
+│   ├── rules/                  # [NEW] GET: All tajweed rules with examples
+│   ├── analyze/                # [NEW] POST: Analyze audio for tajweed accuracy
+│   └── progress/               # [NEW] GET/PUT: Per-rule mastery tracking
 ├── progress/
-│   ├── sessions/         # Session tracking
-│   ├── goals/            # Goal management
-│   └── streaks/          # Streak tracking
-├── user/
-│   ├── settings/         # User preferences
-│   ├── bookmarks/        # Saved bookmarks
-│   └── badges/           # Achievements
-└── social/
-    ├── groups/           # Group features
-    └── leaderboard/      # Rankings
+│   ├── sessions/               # GET/POST: Session CRUD with pagination
+│   ├── streaks/                # GET: 365-day streak history + heatmap
+│   ├── goals/                  # GET/POST/PATCH: Smart goals
+│   └── srs/                    # GET/POST/PATCH: FSRS cards (replacing SM-2)
+├── gamification/
+│   ├── xp/                     # [NEW] GET/POST: XP transactions + totals
+│   ├── leagues/                # [NEW] GET/POST: League standings + promotion
+│   ├── achievements/           # [NEW] GET: All achievements + user progress
+│   ├── garden/                 # [NEW] GET/PUT: Garden state + decorations
+│   └── challenges/             # [NEW] GET/POST: Daily + friend challenges
+├── social/
+│   ├── leaderboard/            # GET: Global rankings
+│   ├── circles/                # [NEW] CRUD: Hifz study groups
+│   ├── circles/[id]/members/   # [NEW] Manage circle membership
+│   └── circles/[id]/challenges/# [NEW] Circle challenges
+├── curriculum/
+│   ├── plans/                  # [NEW] GET/POST: Study plan CRUD
+│   ├── daily/                  # [NEW] GET: Today's study targets
+│   └── adjust/                 # [NEW] POST: Recalculate plan based on progress
+└── user/
+    ├── settings/               # GET/PUT: User preferences (server-synced)
+    ├── bookmarks/              # GET/POST/DELETE: Bookmarks
+    └── badges/                 # GET: Earned badges
 ```
+
+### Database Schema Additions Needed
+
+```prisma
+// New models to add to prisma/schema.prisma
+
+model XPTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  source    XPSource // SESSION, STREAK, CHALLENGE, ACHIEVEMENT, BONUS
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model LeagueStanding {
+  id         String   @id @default(cuid())
+  userId     String
+  league     League   // TALIB, QARI, HAFIZ, SHEIKH, IMAM
+  weekStart  DateTime
+  weekXP     Int      @default(0)
+  rank       Int?
+  promoted   Boolean  @default(false)
+  demoted    Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id])
+  @@unique([userId, weekStart])
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  nameAr      String?
+  description String
+  icon        String
+  rarity      Rarity   // COMMON, RARE, EPIC, LEGENDARY
+  category    String
+  condition   Json     // { type: "streak", threshold: 7 }
+  xpReward    Int      @default(0)
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  earnedAt      DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  @@unique([userId, achievementId])
+}
+
+model GardenState {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  flowers     Json     // { verseKey: { type, stage, plantedAt } }
+  trees       Json     // { pageNumber: { type, stage, plantedAt } }
+  landmarks   Json     // { surahNumber: { type, unlockedAt } }
+  decorations Json     // purchased with hasanat
+  hasanat     Int      @default(0)
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model HifzCircle {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  isPublic    Boolean  @default(true)
+  maxMembers  Int      @default(20)
+  groupStreak Int      @default(0)
+  createdAt   DateTime @default(now())
+  owner       User     @relation("CircleOwner", fields: [ownerId], references: [id])
+  members     CircleMember[]
+  challenges  CircleChallenge[]
+}
+
+model CircleMember {
+  id       String     @id @default(cuid())
+  circleId String
+  userId   String
+  role     CircleRole // OWNER, TEACHER, MEMBER
+  joinedAt DateTime   @default(now())
+  circle   HifzCircle @relation(fields: [circleId], references: [id])
+  user     User       @relation(fields: [userId], references: [id])
+  @@unique([circleId, userId])
+}
+
+model StudyPlan {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  goal        Json     // { type: "surah", target: 2, deadline: "2026-06-01" }
+  schedule    Json     // daily targets computed by curriculum engine
+  method      String   // "mauritanian", "3x3", "ottoman", "sabaq"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model TajweedProgress {
+  id         String   @id @default(cuid())
+  userId     String
+  rule       String   // "qalqalah", "ikhfa", "idgham", etc.
+  accuracy   Float    @default(0)
+  sessions   Int      @default(0)
+  mastery    Mastery  // NONE, BRONZE, SILVER, GOLD, PLATINUM, MASTER
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id])
+  @@unique([userId, rule])
+}
+
+model SimilarVersePair {
+  id         String @id @default(cuid())
+  verse1Key  String // "2:35"
+  verse2Key  String // "7:19"
+  similarity Float  // 0.0-1.0
+  diffWords  Json   // words that differ
+  category   String // "near_identical", "similar_opening", "similar_ending"
+  @@unique([verse1Key, verse2Key])
+}
+
+model Challenge {
+  id          String        @id @default(cuid())
+  type        ChallengeType // SPEED, ACCURACY, ENDURANCE, RANDOM, DAILY, FRIEND
+  creatorId   String?
+  targetId    String?       // friend challenge target
+  circleId    String?       // circle challenge
+  config      Json          // { surah, page, timeLimit, accuracyThreshold }
+  startsAt    DateTime
+  endsAt      DateTime
+  createdAt   DateTime      @default(now())
+}
+
+model FSRSCard {
+  id            String   @id @default(cuid())
+  userId        String
+  verseKey      String   // "2:255"
+  stability     Float    @default(0)
+  difficulty    Float    @default(0)
+  elapsedDays   Int      @default(0)
+  scheduledDays Int      @default(0)
+  reps          Int      @default(0)
+  lapses        Int      @default(0)
+  state         Int      @default(0) // 0=New, 1=Learning, 2=Review, 3=Relearning
+  due           DateTime @default(now())
+  lastReview    DateTime?
+  user          User     @relation(fields: [userId], references: [id])
+  @@unique([userId, verseKey])
+}
+
+enum XPSource {
+  SESSION
+  STREAK
+  CHALLENGE
+  ACHIEVEMENT
+  BONUS
+  BLESSED_TIME
+}
+
+enum League {
+  TALIB
+  QARI
+  HAFIZ
+  SHEIKH
+  IMAM
+}
+
+enum Rarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum CircleRole {
+  OWNER
+  TEACHER
+  MEMBER
+}
+
+enum ChallengeType {
+  SPEED
+  ACCURACY
+  ENDURANCE
+  RANDOM_VERSE
+  DAILY
+  FRIEND
+  CIRCLE
+}
+
+enum Mastery {
+  NONE
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  MASTER
+}
+```
+
+### Zustand Stores (Existing + New)
+
+| Store             | File                          | Persisted | Purpose                                     |
+| ----------------- | ----------------------------- | --------- | ------------------------------------------- |
+| quranStore        | `stores/quranStore.ts`        | Yes       | Reading state, position, edition, settings  |
+| audioStore        | `stores/audioStore.ts`        | Yes       | Playback state, reciter, volume, speed      |
+| sessionStore      | `stores/sessionStore.ts`      | No        | Active memorization session (ephemeral)     |
+| userStore         | `stores/userStore.ts`         | Yes       | User info, preferences, streak              |
+| gamificationStore | `stores/gamificationStore.ts` | Yes       | [NEW] XP, league, achievements, garden      |
+| tajweedStore      | `stores/tajweedStore.ts`      | Yes       | [NEW] Active rules, coaching state, mastery |
+| curriculumStore   | `stores/curriculumStore.ts`   | Yes       | [NEW] Active plan, daily targets, method    |
 
 ## External APIs & Resources
 
 - **AlQuran.cloud API**: https://alquran.cloud/api
+- **Quran.com API**: https://api.quran.com/api/v4
 - **QUL (Quranic Universal Library)**: https://qul.tarteel.ai/
   - Mushaf Layouts: https://qul.tarteel.ai/mushaf_layouts (29 editions)
-  - Layout Resources: https://qul.tarteel.ai/resources/mushaf-layout
-  - API Docs: https://qul.tarteel.ai/docs/mushaf-layout
-- **Whisper Arabic Quran Model**: tarteel-ai/whisper-base-ar-quran on HuggingFace
+  - Layout Docs: https://qul.tarteel.ai/docs/mushaf-layout
+- **Whisper Arabic Quran Model**: tarteel-ai/whisper-base-ar-quran (HuggingFace)
+- **FSRS Algorithm**: `ts-fsrs` npm package (TypeScript implementation of FSRS-6)
 - **Quran Audio Sources**:
   - everyayah.com - Multiple Qari recitations
   - verses.quran.com - Word-level audio
   - QUL segmented audio (62 reciters with timestamps)
-- **Fonts**:
-  - KFGQPC Hafs fonts (Uthmani)
-  - Amiri Quran font
-  - IndoPak Nastaleeq fonts
+- **Fonts**: KFGQPC Hafs, Amiri Quran, IndoPak Nastaleeq
 
-## Development Commands
+## Infrastructure
 
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run test         # Run tests
-npm run db:push      # Push Prisma schema
-npm run db:studio    # Open Prisma Studio
+### Shared Services (Docker Desktop)
+
+- **PostgreSQL**: `localhost:5432` / database `quranmemorizer2` / user `postgres`
+  - Used via Prisma 7 with PrismaPg adapter and connection pooling
+  - From Docker containers: `host.docker.internal:5432`
+  - **Available for integration tests** — no need to mock Prisma, test against real DB
+- **Redis**: `localhost:6379` (available but currently UNUSED in codebase)
+  - Should be used for: league leaderboards, real-time features, API response caching, rate limiting, session caching, pub/sub for live updates
+  - Install: `ioredis` or `@upstash/redis` (edge-compatible)
+  - From Docker containers: `host.docker.internal:6379`
+
+### Docker Deployment
+
+- **Dockerfile**: Multi-stage build (deps → builder → runner), Node 20 Alpine, standalone output
+- **docker-compose.yml**: App on port `3002`, connects to shared Postgres + Redis via `host.docker.internal`
+- **Deploy**: `docker compose up --build -d` → runs at `http://localhost:3002`
+
+### Redis Usage Plan (NEW)
+
+```typescript
+// src/lib/redis.ts — Redis client singleton
+import Redis from "ioredis";
+
+export const redis = new Redis(
+  process.env.REDIS_URL || "redis://localhost:6379"
+);
+
+// Use cases:
+// 1. League leaderboards: sorted sets (ZADD/ZRANGE) for O(log N) rankings
+// 2. Weekly XP tracking: INCRBY with TTL for auto-expiring weekly counters
+// 3. API caching: cache Quran text, translations, reciter lists (TTL: 24h)
+// 4. Rate limiting: sliding window for API endpoints
+// 5. Real-time presence: track who's online in Hifz circles
+// 6. Session caching: faster auth lookups than Postgres
+// 7. Pub/sub: live updates for group challenges, circle activity feeds
 ```
 
 ## Environment Variables
 
 ```
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/quranmemorizer
+# Database (Docker Desktop shared PostgreSQL)
+DATABASE_URL="postgresql://postgres:MadisTrader2026@127.0.0.1:5432/quranmemorizer2"
+
+# Redis (Docker Desktop shared Redis)
+REDIS_URL="redis://localhost:6379"
 
 # NextAuth
-NEXTAUTH_SECRET=your-secret-here
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET="quran-memorizer-dev-secret-change-in-production"
+NEXTAUTH_URL="http://localhost:3000"
 
-# OAuth Providers
+# OAuth Providers (optional)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-APPLE_CLIENT_ID=
-APPLE_CLIENT_SECRET=
 FACEBOOK_CLIENT_ID=
 FACEBOOK_CLIENT_SECRET=
+APPLE_CLIENT_ID=
+APPLE_CLIENT_SECRET=
 
-# Email (for verification)
+# Email
 EMAIL_SERVER=smtp://user:pass@smtp.example.com:587
 EMAIL_FROM=noreply@quranmemorizer.app
 
@@ -239,358 +632,152 @@ HUGGINGFACE_API_KEY=
 QURAN_API_URL=https://api.alquran.cloud/v1
 ```
 
-## Custom Agents for Development
-
-Use these agent prompts when working on specific areas of the application.
-
----
-
-### Agent: quran-data-agent
-
-**Purpose**: Handle all Quran data fetching, caching, and processing
-**When to use**: Working on Quran text display, translations, or data fetching
-**Responsibilities**:
-
-- Fetch Surah/Ayah data from AlQuran.cloud API
-- Cache Quran text and translations in IndexedDB
-- Process and normalize Arabic text
-- Handle multiple script formats (Uthmani, IndoPak)
-- Integrate with QUL API for mushaf layouts
-- Manage word-by-word data
-
-**Key Files**:
-
-- `src/lib/quran/api.ts`
-- `src/lib/quran/utils.ts`
-- `src/types/quran.ts`
-- `src/stores/quranStore.ts`
-
----
-
-### Agent: mushaf-renderer-agent
-
-**Purpose**: Handle page-accurate Mushaf rendering matching physical copies
-**When to use**: Working on Quran page display, layout rendering, or font issues
-**Responsibilities**:
-
-- Parse mushaf layout databases (JSON from QUL)
-- Render pages with exact line breaks as physical Mushaf
-- Handle Arabic text justification per line
-- Support multiple editions (Madinah 1421H, 1441H, IndoPak)
-- Implement Tajweed color coding overlay
-- Manage Arabic font loading (KFGQPC, Amiri, Nastaleeq)
-
-**Key Files**:
-
-- `src/lib/quran/mushafRenderer.ts`
-- `src/lib/quran/layoutParser.ts`
-- `src/components/quran/MushafPage/`
-- `src/components/quran/MushafLine/`
-- `src/components/quran/MushafWord/`
-- `src/data/mushaf-layouts/`
-
-**Resources**:
-
-- QUL Layouts: https://qul.tarteel.ai/mushaf_layouts
-- Layout Docs: https://qul.tarteel.ai/docs/mushaf-layout
-
----
-
-### Agent: voice-recognition-agent
-
-**Purpose**: Manage all voice/speech recognition functionality
-**When to use**: Working on recitation tracking, voice search, or transcription
-**Responsibilities**:
-
-- Initialize Web Speech API with Arabic (ar-SA, ar-EG)
-- Process Arabic voice input in real-time
-- Send audio to Whisper API when browser API fails
-- Handle real-time transcription with interim results
-- Implement voice search ("Shazam for Quran")
-- Match transcribed text to Quran verses
-
-**Key Files**:
-
-- `src/lib/speech/recognition.ts`
-- `src/lib/speech/whisper.ts`
-- `src/components/voice/VoiceRecorder/`
-- `src/components/voice/VoiceSearch/`
-- `src/components/voice/RecitationTracker/`
-
-**Resources**:
-
-- Web Speech API: https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API
-- Whisper Model: https://huggingface.co/tarteel-ai/whisper-base-ar-quran
-
----
-
-### Agent: memorization-agent
-
-**Purpose**: Handle memorization mode logic and mistake detection
-**When to use**: Working on hidden verses, mistake detection, or session tracking
-**Responsibilities**:
-
-- Compare recited text with original Quran text
-- Detect word-level mistakes using fuzzy matching
-- Track skipped words and word order errors
-- Identify tashkeel (diacritical) errors
-- Generate mistake reports with severity levels
-- Handle progressive verse revealing
-- Manage memorization sessions
-
-**Key Files**:
-
-- `src/lib/memorization/mistakeDetector.ts`
-- `src/lib/memorization/session.ts`
-- `src/components/memorization/HiddenVerse/`
-- `src/components/memorization/MistakeHighlight/`
-- `src/components/memorization/ProgressiveReveal/`
-- `src/components/memorization/SessionSummary/`
-
-**Algorithm Notes**:
-
-```typescript
-// Mistake types to detect
-type MistakeType =
-  | "wrong_word" // Incorrect word recited
-  | "skipped" // Word was skipped
-  | "added" // Extra word inserted
-  | "tashkeel" // Diacritical mark error
-  | "order"; // Words in wrong order
-```
-
----
-
-### Agent: progress-tracking-agent
-
-**Purpose**: Manage all progress, goals, and gamification
-**When to use**: Working on streaks, badges, analytics, or goals
-**Responsibilities**:
-
-- Track daily streaks with timezone handling
-- Calculate progress statistics (pages, ayahs, accuracy)
-- Manage goals (create, update, complete)
-- Award badges based on achievements
-- Generate analytics reports and heatmaps
-- Handle leaderboard rankings
-
-**Key Files**:
-
-- `src/lib/analytics/progress.ts`
-- `src/lib/analytics/streaks.ts`
-- `src/lib/analytics/badges.ts`
-- `src/stores/progressStore.ts`
-- `src/components/gamification/StreakDisplay/`
-- `src/components/gamification/BadgeSystem/`
-- `src/components/gamification/Leaderboard/`
-- `src/app/(main)/progress/page.tsx`
-
-**Badge Definitions**:
-
-- First Recitation, 7/30/100-Day Streaks
-- Surah Completion, Juz Completion
-- Perfect Session, Night Owl, Early Bird
-
----
-
-### Agent: audio-agent
-
-**Purpose**: Handle all audio playback and recording
-**When to use**: Working on audio player, Qari selection, or recording
-**Responsibilities**:
-
-- Manage audio player state (play, pause, seek)
-- Handle Qari audio streaming from multiple sources
-- Implement playback controls (speed, loop, volume)
-- Record user recitations with MediaRecorder API
-- Cache audio for offline playback
-- Sync audio with text highlighting
-
-**Key Files**:
-
-- `src/lib/audio/player.ts`
-- `src/lib/audio/recorder.ts`
-- `src/stores/audioStore.ts`
-- `src/components/quran/AudioPlayer/`
-- `src/hooks/useAudioPlayer.ts`
-
-**Audio Sources**:
-
-- everyayah.com - Full Quran recitations
-- verses.quran.com - Word-level audio
-- QUL - 62 reciters with timestamps
-
----
-
-### Agent: ui-components-agent
-
-**Purpose**: Build and maintain UI components with shadcn/ui
-**When to use**: Creating new components, styling, or accessibility fixes
-**Responsibilities**:
-
-- Build components using shadcn/ui + Tailwind
-- Ensure RTL support for Arabic content
-- Implement dark/light/sepia themes
-- Handle responsive design (mobile-first)
-- Ensure WCAG accessibility compliance
-- Create loading skeletons and error states
-
-**Key Files**:
-
-- `src/components/ui/` (shadcn components)
-- `src/app/globals.css`
-- `tailwind.config.ts`
-
-**Guidelines**:
-
-- Use `dir="rtl"` for Arabic text containers
-- Use CSS logical properties (start/end vs left/right)
-- Test with screen readers
-- Support keyboard navigation
-
----
-
-### Agent: pwa-offline-agent
-
-**Purpose**: Handle PWA setup at offline functionality
-**When to use**: Working on Service Worker, caching, or offline features
-**Responsibilities**:
-
-- Configure next-pwa with caching strategies
-- Cache Quran text data for offline access
-- Implement audio download manager
-- Handle background sync for progress data
-- Create install prompt UI
-- Manage push notifications
-
-**Key Files**:
-
-- `next.config.js` (PWA config)
-- `public/manifest.json`
-- `src/lib/offline/cache.ts`
-- `src/lib/offline/sync.ts`
-- `src/components/pwa/InstallPrompt/`
-- `src/components/pwa/OfflineIndicator/`
-
-**Caching Strategy**:
-
-- Quran text: Cache-first (static)
-- Translations: Stale-while-revalidate
-- Audio: Cache on-demand + background download
-- API responses: Network-first with fallback
-
----
-
-### Agent: testing-agent
-
-**Purpose**: Write and maintain tests
-**When to use**: Writing unit tests, component tests, or E2E tests
-**Responsibilities**:
-
-- Write unit tests for utility functions
-- Create component tests with React Testing Library
-- Build E2E tests with Playwright
-- Mock voice recognition for testing
-- Test Arabic text rendering
-- Verify offline functionality
-
-**Key Files**:
-
-- `src/**/*.test.ts`
-- `src/**/*.test.tsx`
-- `e2e/*.spec.ts`
-- `playwright.config.ts`
-- `jest.config.js`
-
-**Testing Priorities**:
-
-1. Mistake detection algorithm
-2. Mushaf rendering accuracy
-3. Audio player controls
-4. Progress/streak calculations
-5. Authentication flows
-
----
-
-### Agent: database-agent
-
-**Purpose**: Handle database schema and queries
-**When to use**: Working on Prisma schema, migrations, or queries
-**Responsibilities**:
-
-- Design and update Prisma schema
-- Write efficient database queries
-- Handle migrations
-- Optimize query performance
-- Manage user data relationships
-
-**Key Files**:
-
-- `prisma/schema.prisma`
-- `src/lib/db/`
-- `src/app/api/*/route.ts`
-
-**Commands**:
+## Development Commands
 
 ```bash
-npx prisma db push      # Push schema changes
-npx prisma generate     # Generate client
-npx prisma studio       # Open GUI
-npx prisma migrate dev  # Create migration
+# Development
+npm run dev              # Start dev server (localhost:3000)
+npm run build            # Production build
+npm run start            # Production server
+npm run lint             # ESLint
+npm run test             # Tests
+
+# Database
+npm run db:push          # Push Prisma schema to PostgreSQL
+npm run db:studio        # Open Prisma Studio GUI
+
+# Docker (Production MVP)
+docker compose up --build -d    # Build + deploy to localhost:3002
+docker compose logs -f app      # View logs
+docker compose down              # Stop
 ```
 
-## Future: Mobile & Desktop Apps (Placeholder)
+## Development Teams (Slash Commands)
 
-### Monorepo Structure (Future)
+Each team has a dedicated slash command that activates agent context with full knowledge of relevant files, patterns, and responsibilities.
 
-```
-packages/
-├── core/                 # Shared business logic
-│   ├── quran/           # Quran data utilities
-│   ├── memorization/    # Mistake detection
-│   └── types/           # TypeScript types
-├── web/                 # Next.js web app (current)
-├── mobile/              # React Native / Expo app (future)
-└── desktop/             # Tauri desktop app (future)
-```
+### Team Tajweed (`/team-tajweed`)
 
-### Mobile App (React Native / Expo)
+Port V1's 6-layer Tajweed system into V2. Build the Tajweed learning path, audio analysis, real-time coaching, and mastery tracking.
 
-- Share core logic with web
-- Native voice recognition
-- Background audio playback
-- Push notifications
-- App Store / Play Store
+### Team Memorization Engine (`/team-memorization`)
 
-### Desktop App (Tauri)
+FSRS-6 upgrade, progressive hide modes, similar verse trainer, traditional methods (Mauritanian, 3x3, Sabaq), Memory Palace mode.
 
-- Lightweight Rust-based wrapper
-- System tray integration
-- Global keyboard shortcuts
-- Full offline support
-- Windows / macOS / Linux
+### Team Voice AI (`/team-voice`)
+
+Speech recognition, Whisper auto-fallback, voice search "Shazam", recitation tracking, fluency metrics, recitation replay with diff.
+
+### Team Audio Experience (`/team-audio`)
+
+Audio player wiring, Qari selection, word-level sync, offline download, recording & playback, listen page completion.
+
+### Team Gamification (`/team-gamification`)
+
+XP economy, Quran leagues, Garden of Jannah, 50+ achievements, challenge modes, daily challenges, blessed time bonuses, streak multipliers.
+
+### Team Social (`/team-social`)
+
+Hifz circles, group streaks, teacher dashboard, friend challenges, leaderboards, accountability partners.
+
+### Team Progress & Curriculum (`/team-progress`)
+
+Smart curriculum generator, analytics dashboard, progress page wiring, fluency metrics, page mastery heatmap, search page wiring.
+
+### Team Integration & Polish (`/team-integration`)
+
+Wire disconnected pages (listen, search, progress), settings server sync, error boundaries, badge auto-triggering, bookmark deduplication.
+
+### Team UX & i18n (`/team-ux`)
+
+RTL support, i18n message integration, theme system, responsive polish, accessibility (WCAG), onboarding flow, loading skeletons.
+
+### Team Infrastructure (`/team-infra`)
+
+Testing (unit + E2E), CI/CD, performance optimization, PWA enhancement, offline reliability, database optimization.
+
+## Implementation Phases
+
+### Phase 1: Foundation Fixes (Wire Everything)
+
+**Goal**: Connect all existing but disconnected features
+
+1. Wire Listen page to AudioPlayer + useAudioPlayer
+2. Wire Search page to useSearch + voiceSearch
+3. Wire Progress page to useSessions, useStreaks, useGoals, useBadges
+4. Sync settings to server via useUpdateSettings
+5. Auto-trigger badge evaluation after sessions
+6. Fix voice recognition Whisper auto-fallback
+7. Pass surah/ayah context to useVoiceRecognition
+8. Add React Error Boundaries
+9. Render Tajweed colors on MushafWord component
+
+### Phase 2: Core Differentiators
+
+**Goal**: Build features no competitor has
+
+1. Replace SM-2 with FSRS-6 (`ts-fsrs` package)
+2. Port V1 Tajweed system (6 layers) into V2
+3. Build SRS review queue UI
+4. Similar Verse Trainer (detection + drills)
+5. Progressive hide modes (8 strategies)
+6. XP system + achievement engine
+7. Real-time Tajweed coaching panel
+8. Recitation replay with visual diff
+
+### Phase 3: Engagement & Social
+
+**Goal**: Make it addictive and social
+
+1. Garden of Jannah visual metaphor
+2. Quran-themed leagues (weekly competition)
+3. Challenge modes (speed, accuracy, endurance, daily)
+4. Hifz Circles (study groups)
+5. Smart curriculum generator
+6. Blessed time bonuses
+7. Traditional method support (Mauritanian, 3x3, Sabaq)
+8. Teacher dashboard
+
+### Phase 4: Polish & Scale
+
+**Goal**: Production-ready, world-class
+
+1. Comprehensive test suite
+2. Performance optimization (LCP < 2.5s)
+3. Full i18n with RTL
+4. Onboarding flow
+5. Bulk Quran data pre-caching
+6. Audio offline download manager
+7. Push notifications (prayer times, streak reminders)
+8. Mobile-responsive perfection
 
 ## Code Style Guidelines
 
-- Use TypeScript strict mode
-- Follow React Server Components patterns
-- Implement proper error boundaries
-- Use Suspense for loading states
-- Implement proper accessibility (ARIA)
-- RTL support for Arabic content
+- TypeScript strict mode, no `any` (except Prisma JSON fields)
+- React Server Components where possible, `"use client"` only when needed
+- Error Boundaries around every major section
+- Suspense for loading states
+- ARIA attributes for accessibility
+- `dir="rtl"` for Arabic text containers
+- CSS logical properties (start/end not left/right)
 - Mobile-first responsive design
-
-## Testing Strategy
-
-- Unit tests for utility functions
-- Component tests with React Testing Library
-- E2E tests with Playwright
-- Voice recognition mocking for tests
+- Offline-first data access pattern (IndexedDB → API → cache)
 
 ## Performance Targets
 
 - LCP < 2.5s
 - FID < 100ms
 - CLS < 0.1
-- Offline support via Service Worker
+- TTI < 3.5s
+- Offline support via Service Worker + IndexedDB
 - Audio preloading for smooth playback
+- Layout prefetching (adjacent pages)
+- Image/font optimization
+
+## Testing Strategy
+
+- Unit tests: Mistake detection, FSRS scheduling, streak calculation, Arabic normalization, similar verse detection, XP calculation
+- Component tests: React Testing Library for all interactive components
+- E2E tests: Playwright for critical flows (memorize, review, search, settings)
+- Voice recognition mocking for test reliability
+- Target: >80% coverage on core algorithms

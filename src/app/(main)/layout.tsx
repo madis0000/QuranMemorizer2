@@ -18,6 +18,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 const navigation = [
   { name: "Quran", href: "/quran", icon: BookOpen },
@@ -170,7 +171,9 @@ export default function MainLayout({
           "pt-16 lg:pt-0"
         )}
       >
-        <div className="h-full">{children}</div>
+        <div className="h-full">
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </div>
       </main>
     </div>
   );

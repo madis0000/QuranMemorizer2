@@ -7,12 +7,16 @@ import { useSessionStore } from "@/stores/sessionStore";
 
 interface UseVoiceRecognitionOptions {
   originalText: string;
+  surahNumber?: number;
+  ayahNumber?: number;
   sensitivity?: "strict" | "normal" | "lenient";
   onComparisonResult?: (result: ComparisonResult) => void;
 }
 
 export function useVoiceRecognition({
   originalText,
+  surahNumber,
+  ayahNumber,
   sensitivity = "normal",
   onComparisonResult,
 }: UseVoiceRecognitionOptions) {
@@ -53,10 +57,10 @@ export function useVoiceRecognition({
       setComparisonResult(result);
 
       // Record mistakes in session store
-      result.mistakes.forEach((mistake, index) => {
+      result.mistakes.forEach((mistake) => {
         addMistake({
-          surahNumber: 0, // Should be set by caller
-          ayahNumber: 0,
+          surahNumber: surahNumber ?? 0,
+          ayahNumber: ayahNumber ?? 0,
           wordIndex: mistake.wordIndex,
           type: mistake.type,
           recitedText: mistake.recitedText,
@@ -77,6 +81,8 @@ export function useVoiceRecognition({
     }
   }, [
     originalText,
+    surahNumber,
+    ayahNumber,
     sensitivity,
     addMistake,
     incrementWordsRecited,

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import type { ComparisonResult } from "@/lib/memorization/mistakeDetector";
+import { usePostSessionGamification } from "@/hooks/use-gamification";
 import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
 import {
   useSessionStore,
@@ -49,6 +50,7 @@ import { VoiceRecorder } from "@/components/voice/VoiceRecorder";
 export default function MemorizePage() {
   const session = useSessionStore();
   const createSession = useCreateSession();
+  const { processSession } = usePostSessionGamification();
 
   const [showPicker, setShowPicker] = useState(true);
   const [sessionSummary, setSessionSummary] =
@@ -114,27 +116,39 @@ export default function MemorizePage() {
       setSessionSummary(summary);
 
       // Persist to server
-      createSession.mutate({
-        surahNumber: summary.surahNumber,
-        startAyah: summary.startAyah,
-        endAyah: summary.endAyah,
-        mode: "MEMORIZE",
-        duration: summary.duration,
-        accuracy: summary.accuracy,
-        wordsRecited: summary.wordsRecited,
-        mistakeCount: summary.mistakes.length,
-        mistakes: summary.mistakes.map((m) => ({
-          surahNumber: m.surahNumber,
-          ayahNumber: m.ayahNumber,
-          wordIndex: m.wordIndex,
-          type: m.type.toUpperCase(),
-          recitedText: m.recitedText ?? undefined,
-          correctText: m.correctText,
-          severity: m.severity.toUpperCase(),
-        })),
-      });
+      createSession.mutate(
+        {
+          surahNumber: summary.surahNumber,
+          startAyah: summary.startAyah,
+          endAyah: summary.endAyah,
+          mode: "MEMORIZE",
+          duration: summary.duration,
+          accuracy: summary.accuracy,
+          wordsRecited: summary.wordsRecited,
+          mistakeCount: summary.mistakes.length,
+          mistakes: summary.mistakes.map((m) => ({
+            surahNumber: m.surahNumber,
+            ayahNumber: m.ayahNumber,
+            wordIndex: m.wordIndex,
+            type: m.type.toUpperCase(),
+            recitedText: m.recitedText ?? undefined,
+            correctText: m.correctText,
+            severity: m.severity.toUpperCase(),
+          })),
+        },
+        {
+          onSuccess: () => {
+            processSession({
+              versesRecited: summary.endAyah - summary.startAyah + 1,
+              accuracy: summary.accuracy,
+              duration: summary.duration,
+              surahNumber: summary.surahNumber,
+            });
+          },
+        }
+      );
     }
-  }, [finalText, compareAndScore, session, createSession]);
+  }, [finalText, compareAndScore, session, createSession, processSession]);
 
   const handleNextAyah = async () => {
     // Compare current ayah before moving

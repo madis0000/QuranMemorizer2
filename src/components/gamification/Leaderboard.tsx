@@ -34,7 +34,7 @@ export function Leaderboard({
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
+          <Trophy className="h-5 w-5 text-[#059669] dark:text-[#00E5A0]" />
           Leaderboard
         </CardTitle>
       </CardHeader>
@@ -99,9 +99,9 @@ function LeaderboardList({
       {entries.map((entry) => {
         const isCurrentUser = entry.userId === currentUserId;
         const medalColors: Record<number, string> = {
-          1: "text-yellow-500",
-          2: "text-gray-400",
-          3: "text-amber-600",
+          1: "text-[#FFD700]",
+          2: "text-[#6b7280] dark:text-[#9ca3af]",
+          3: "text-[#92400e] dark:text-[#b45309]",
         };
 
         return (

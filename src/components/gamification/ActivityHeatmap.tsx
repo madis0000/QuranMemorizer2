@@ -23,11 +23,11 @@ interface ActivityHeatmapProps {
 }
 
 const intensityColors = [
-  "bg-muted", // 0 - no activity
-  "bg-green-200 dark:bg-green-900", // 1 - low
-  "bg-green-400 dark:bg-green-700", // 2 - medium
-  "bg-green-600 dark:bg-green-500", // 3 - high
-  "bg-green-800 dark:bg-green-400", // 4 - max
+  "bg-[#D1E0D8]/50 dark:bg-[#1a2e23]/30", // 0 - no activity
+  "bg-[#059669]/20 dark:bg-[#00E5A0]/15", // 1 - low
+  "bg-[#059669]/40 dark:bg-[#00E5A0]/30", // 2 - medium
+  "bg-[#059669]/60 dark:bg-[#00E5A0]/50", // 3 - high
+  "bg-[#059669] dark:bg-[#00E5A0]/80", // 4 - max
 ];
 
 export function ActivityHeatmap({ data, className }: ActivityHeatmapProps) {

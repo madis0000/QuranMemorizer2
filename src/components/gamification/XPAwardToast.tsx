@@ -51,7 +51,7 @@ export function XPAwardToast({
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       )}
     >
-      <div className="bg-gradient-to-r from-amber-500 to-yellow-500 dark:from-amber-600 dark:to-yellow-600 text-white rounded-lg shadow-2xl shadow-amber-500/50 px-6 py-4 min-w-[280px]">
+      <div className="bg-gradient-to-r from-[#059669] to-[#047857] dark:from-[#00E5A0]/90 dark:to-[#059669]/90 text-white dark:text-[#0F1A14] rounded-lg shadow-2xl shadow-[#059669]/50 dark:shadow-[#00E5A0]/30 px-6 py-4 min-w-[280px]">
         {/* XP Amount */}
         <div className="flex items-center justify-center gap-2 mb-2">
           <Star className="w-6 h-6 fill-white animate-bounce-slow" />

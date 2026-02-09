@@ -33,11 +33,11 @@ function formatShortDate(dateStr: string): string {
  * Interpolate between red (low accuracy) and green (high accuracy)
  */
 function getAccuracyColor(accuracy: number): string {
-  if (accuracy >= 90) return "#22c55e"; // green-500
-  if (accuracy >= 70) return "#84cc16"; // lime-500
-  if (accuracy >= 50) return "#eab308"; // yellow-500
-  if (accuracy >= 30) return "#f97316"; // orange-500
-  return "#ef4444"; // red-500
+  if (accuracy >= 90) return "#059669"; // forest green
+  if (accuracy >= 70) return "#0d9488"; // teal
+  if (accuracy >= 50) return "#FFD700"; // gold
+  if (accuracy >= 30) return "#B8860B"; // dark gold
+  return "#ef4444"; // red
 }
 
 export function AccuracyTrend({
@@ -149,8 +149,8 @@ export function AccuracyTrend({
           {/* Gradient area fill */}
           <defs>
             <linearGradient id="accuracy-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="#22c55e" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="#059669" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="#059669" stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <path d={areaD} fill="url(#accuracy-gradient)" />
@@ -159,7 +159,7 @@ export function AccuracyTrend({
           <path
             d={pathD}
             fill="none"
-            stroke="#22c55e"
+            stroke="#059669"
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"

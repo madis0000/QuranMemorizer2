@@ -19,32 +19,33 @@ interface AchievementPopupProps {
 const RARITY_CONFIG = {
   common: {
     duration: 5000,
-    className: "border-zinc-400 bg-zinc-50 dark:bg-zinc-900",
-    textColor: "text-zinc-700 dark:text-zinc-300",
+    className:
+      "border-[#059669]/40 bg-[#059669]/5 dark:border-[#00E5A0]/30 dark:bg-[#00E5A0]/5",
+    textColor: "text-[#059669] dark:text-[#00E5A0]",
     animation: "animate-slide-up",
     overlay: false,
   },
   rare: {
     duration: 8000,
     className:
-      "border-blue-500 bg-blue-50 dark:bg-blue-950 shadow-lg shadow-blue-500/20",
-    textColor: "text-blue-700 dark:text-blue-300",
+      "border-[#0d9488]/50 bg-[#0d9488]/5 dark:border-[#2dd4bf]/40 dark:bg-[#2dd4bf]/10 shadow-lg shadow-[#0d9488]/20",
+    textColor: "text-[#0d9488] dark:text-[#2dd4bf]",
     animation: "animate-slide-up-sparkle",
     overlay: false,
   },
   epic: {
     duration: 10000,
     className:
-      "border-purple-500 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 shadow-2xl shadow-purple-500/30",
-    textColor: "text-purple-700 dark:text-purple-300",
+      "border-[#065f46]/50 bg-gradient-to-r from-[#065f46]/5 to-[#059669]/5 dark:from-[#34d399]/10 dark:to-[#00E5A0]/10 shadow-2xl shadow-[#065f46]/30 dark:border-[#34d399]/40",
+    textColor: "text-[#065f46] dark:text-[#34d399]",
     animation: "animate-epic-entrance",
     overlay: false,
   },
   legendary: {
     duration: Infinity,
     className:
-      "border-amber-500 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950 shadow-2xl shadow-amber-500/40",
-    textColor: "text-amber-700 dark:text-amber-300",
+      "border-[#FFD700]/50 bg-gradient-to-r from-[#FFD700]/5 to-[#059669]/5 dark:from-[#FFD700]/10 dark:to-[#00E5A0]/10 shadow-2xl shadow-[#FFD700]/40 dark:border-[#FFD700]/40",
+    textColor: "text-[#B8860B] dark:text-[#FFD700]",
     animation: "animate-legendary-entrance",
     overlay: true,
   },
@@ -127,8 +128,8 @@ export function AchievementPopup({
                     className={cn(
                       "absolute w-2 h-2 rounded-full animate-float-particle",
                       achievement.rarity === "epic"
-                        ? "bg-purple-400"
-                        : "bg-amber-400"
+                        ? "bg-[#34d399]"
+                        : "bg-[#FFD700]"
                     )}
                     style={{
                       left: `${(i * 37 + 13) % 100}%`,
@@ -158,13 +159,13 @@ export function AchievementPopup({
               className={cn(
                 "rounded-full p-6 flex items-center justify-center",
                 achievement.rarity === "common" &&
-                  "bg-zinc-200 dark:bg-zinc-800",
+                  "bg-[#059669]/15 dark:bg-[#00E5A0]/15",
                 achievement.rarity === "rare" &&
-                  "bg-blue-200 dark:bg-blue-900 animate-pulse-glow-blue",
+                  "bg-[#0d9488]/15 dark:bg-[#2dd4bf]/15 animate-pulse-glow-forest",
                 achievement.rarity === "epic" &&
-                  "bg-purple-200 dark:bg-purple-900 animate-pulse-glow-purple",
+                  "bg-[#065f46]/15 dark:bg-[#34d399]/15 animate-pulse-glow-forest",
                 achievement.rarity === "legendary" &&
-                  "bg-amber-200 dark:bg-amber-900 animate-pulse-glow-gold"
+                  "bg-[#FFD700]/15 dark:bg-[#FFD700]/15 animate-pulse-glow-gold"
               )}
             >
               <Trophy
@@ -184,13 +185,13 @@ export function AchievementPopup({
               className={cn(
                 "px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider",
                 achievement.rarity === "common" &&
-                  "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300",
+                  "bg-[#059669]/15 text-[#059669] dark:bg-[#00E5A0]/15 dark:text-[#00E5A0]",
                 achievement.rarity === "rare" &&
-                  "bg-blue-200 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
+                  "bg-[#0d9488]/15 text-[#0d9488] dark:bg-[#2dd4bf]/15 dark:text-[#2dd4bf]",
                 achievement.rarity === "epic" &&
-                  "bg-purple-200 dark:bg-purple-900 text-purple-700 dark:text-purple-300",
+                  "bg-[#065f46]/15 text-[#065f46] dark:bg-[#34d399]/15 dark:text-[#34d399]",
                 achievement.rarity === "legendary" &&
-                  "bg-amber-200 dark:bg-amber-900 text-amber-700 dark:text-amber-300"
+                  "bg-[#FFD700]/15 text-[#B8860B] dark:bg-[#FFD700]/15 dark:text-[#FFD700]"
               )}
             >
               {achievement.rarity}
@@ -227,12 +228,13 @@ export function AchievementPopup({
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full font-bold",
                 achievement.rarity === "common" &&
-                  "bg-zinc-200 dark:bg-zinc-800",
-                achievement.rarity === "rare" && "bg-blue-200 dark:bg-blue-900",
+                  "bg-[#059669]/15 dark:bg-[#00E5A0]/15",
+                achievement.rarity === "rare" &&
+                  "bg-[#0d9488]/15 dark:bg-[#2dd4bf]/15",
                 achievement.rarity === "epic" &&
-                  "bg-purple-200 dark:bg-purple-900",
+                  "bg-[#065f46]/15 dark:bg-[#34d399]/15",
                 achievement.rarity === "legendary" &&
-                  "bg-amber-200 dark:bg-amber-900 text-lg",
+                  "bg-[#FFD700]/15 dark:bg-[#FFD700]/15 text-lg",
                 config.textColor
               )}
             >
@@ -305,33 +307,23 @@ export function AchievementPopup({
           }
         }
 
-        @keyframes pulse-glow-blue {
+        @keyframes pulse-glow-forest {
           0%,
           100% {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 20px rgba(5, 150, 105, 0.5);
           }
           50% {
-            box-shadow: 0 0 40px rgba(59, 130, 246, 0.8);
-          }
-        }
-
-        @keyframes pulse-glow-purple {
-          0%,
-          100% {
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
-          }
-          50% {
-            box-shadow: 0 0 40px rgba(168, 85, 247, 0.8);
+            box-shadow: 0 0 40px rgba(0, 229, 160, 0.6);
           }
         }
 
         @keyframes pulse-glow-gold {
           0%,
           100% {
-            box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
           }
           50% {
-            box-shadow: 0 0 60px rgba(245, 158, 11, 0.8);
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.7);
           }
         }
 
@@ -355,12 +347,8 @@ export function AchievementPopup({
           animation: float-particle linear infinite;
         }
 
-        .animate-pulse-glow-blue {
-          animation: pulse-glow-blue 2s ease-in-out infinite;
-        }
-
-        .animate-pulse-glow-purple {
-          animation: pulse-glow-purple 2s ease-in-out infinite;
+        .animate-pulse-glow-forest {
+          animation: pulse-glow-forest 2s ease-in-out infinite;
         }
 
         .animate-pulse-glow-gold {

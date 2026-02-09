@@ -8,6 +8,12 @@ import { persist } from "zustand/middleware";
 
 export type League = "talib" | "qari" | "hafiz" | "sheikh" | "imam";
 
+export interface XPAward {
+  amount: number;
+  source: string;
+  multiplier: number;
+}
+
 interface GamificationState {
   // XP
   totalXP: number;
@@ -22,8 +28,13 @@ interface GamificationState {
   earnedAchievements: string[]; // achievement codes
   recentAchievement: string | null; // for popup notification
 
+  // XP Award notification (ephemeral)
+  recentXPAward: XPAward | null;
+
   // Actions
   addXP: (amount: number, source: string) => void;
+  awardXP: (amount: number, source: string, multiplier: number) => void;
+  clearXPAward: () => void;
   resetWeeklyXP: () => void;
   earnAchievement: (code: string) => void;
   dismissAchievement: () => void;
@@ -46,6 +57,7 @@ export const useGamificationStore = create<GamificationState>()(
       leagueRank: 0,
       earnedAchievements: [],
       recentAchievement: null,
+      recentXPAward: null,
 
       // Actions
       addXP: (amount: number, source: string) =>
@@ -65,6 +77,25 @@ export const useGamificationStore = create<GamificationState>()(
             level: newLevel,
           };
         }),
+
+      awardXP: (amount: number, source: string, multiplier: number) =>
+        set((state) => {
+          const newTotalXP = state.totalXP + amount;
+          const newWeeklyXP = state.weeklyXP + amount;
+          const newLevel = Math.floor(newTotalXP / 100) + 1;
+
+          return {
+            totalXP: newTotalXP,
+            weeklyXP: newWeeklyXP,
+            level: newLevel,
+            recentXPAward: { amount, source, multiplier },
+          };
+        }),
+
+      clearXPAward: () =>
+        set(() => ({
+          recentXPAward: null,
+        })),
 
       resetWeeklyXP: () =>
         set(() => {

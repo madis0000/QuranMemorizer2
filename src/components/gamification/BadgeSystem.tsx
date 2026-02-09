@@ -57,15 +57,15 @@ const iconMap: Record<string, LucideIcon> = {
 
 const categoryColors: Record<string, string> = {
   STREAK:
-    "border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-900/20",
+    "border-[#FFD700]/30 bg-[#FFD700]/5 dark:border-[#FFD700]/30 dark:bg-[#FFD700]/5",
   MEMORIZATION:
-    "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20",
+    "border-[#0d9488]/30 bg-[#0d9488]/5 dark:border-[#2dd4bf]/30 dark:bg-[#2dd4bf]/5",
   CONSISTENCY:
-    "border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20",
+    "border-[#059669]/30 bg-[#059669]/5 dark:border-[#00E5A0]/30 dark:bg-[#00E5A0]/5",
   MILESTONE:
-    "border-purple-300 bg-purple-50 dark:border-purple-700 dark:bg-purple-900/20",
+    "border-[#065f46]/30 bg-[#065f46]/5 dark:border-[#34d399]/30 dark:bg-[#34d399]/5",
   SPECIAL:
-    "border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/20",
+    "border-[#B8860B]/30 bg-[#FFD700]/5 dark:border-[#FFD700]/30 dark:bg-[#FFD700]/5",
 };
 
 export function BadgeSystem({
@@ -79,7 +79,7 @@ export function BadgeSystem({
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
+          <Trophy className="h-5 w-5 text-[#059669] dark:text-[#00E5A0]" />
           Achievements
         </CardTitle>
       </CardHeader>
@@ -107,7 +107,9 @@ export function BadgeSystem({
                 <Icon
                   className={cn(
                     "h-8 w-8",
-                    isEarned ? "text-yellow-500" : "text-muted-foreground"
+                    isEarned
+                      ? "text-[#059669] dark:text-[#00E5A0]"
+                      : "text-muted-foreground"
                   )}
                 />
                 <span className="text-xs font-medium leading-tight">

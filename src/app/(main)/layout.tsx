@@ -13,14 +13,20 @@ import {
   Menu,
   Search,
   Settings,
+  Star,
   Trees,
   Users,
   X,
 } from "lucide-react";
 
+import { getAchievementByCode } from "@/lib/gamification/achievements";
+import { getXPProgress } from "@/lib/gamification/xp";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/use-translation";
+import { useGamificationStore } from "@/stores/gamificationStore";
 import { MiniPlayer } from "@/components/audio/MiniPlayer";
+import { AchievementPopup } from "@/components/gamification/AchievementPopup";
+import { XPAwardToast } from "@/components/gamification/XPAwardToast";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { VoiceSearchFAB } from "@/components/voice/VoiceSearchFAB";
@@ -45,6 +51,17 @@ export default function MainLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { streak, sidebarOpen, toggleSidebar, isOnboarded } = useUserStore();
   const { t } = useTranslation();
+  const {
+    totalXP,
+    recentXPAward,
+    clearXPAward,
+    recentAchievement,
+    dismissAchievement,
+  } = useGamificationStore();
+  const xpProgress = getXPProgress(totalXP);
+  const achievementData = recentAchievement
+    ? getAchievementByCode(recentAchievement)
+    : null;
 
   // Redirect to onboarding if not completed
   useEffect(() => {
@@ -107,7 +124,7 @@ export default function MainLayout({
 
           {/* Streak Display */}
           {sidebarOpen && (
-            <div className="p-4 border-t border-[#D1E0D8] dark:border-[#00E5A0]/10">
+            <div className="p-4 border-t border-[#D1E0D8] dark:border-[#00E5A0]/10 space-y-3">
               <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#059669]/5 border border-[#D1E0D8] dark:bg-[#00E5A0]/5 dark:border-[#00E5A0]/10">
                 <Flame className="h-5 w-5 text-[#FFD700]" />
                 <div>
@@ -117,6 +134,26 @@ export default function MainLayout({
                   <p className="text-xs text-muted-foreground">
                     {t("streak.keep_going")}
                   </p>
+                </div>
+              </div>
+              {/* XP Level Progress */}
+              <div className="px-3 py-2 rounded-lg bg-[#059669]/5 border border-[#D1E0D8] dark:bg-[#00E5A0]/5 dark:border-[#00E5A0]/10">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-[#059669] dark:text-[#00E5A0] fill-[#059669] dark:fill-[#00E5A0]" />
+                    <span className="text-sm font-semibold">
+                      Level {xpProgress.level}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {xpProgress.currentXP} / {xpProgress.nextLevelXP} XP
+                  </span>
+                </div>
+                <div className="relative h-2 bg-[#D1E0D8] dark:bg-[#00E5A0]/10 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-[#059669] to-[#047857] dark:from-[#00E5A0] dark:to-[#00E5A0]/70 rounded-full transition-all duration-500"
+                    style={{ width: `${xpProgress.progress}%` }}
+                  />
                 </div>
               </div>
             </div>
@@ -194,6 +231,22 @@ export default function MainLayout({
 
       {/* Voice Search FAB - floats above all content */}
       <VoiceSearchFAB />
+
+      {/* Gamification Overlays */}
+      {recentXPAward && (
+        <XPAwardToast
+          amount={recentXPAward.amount}
+          multiplier={recentXPAward.multiplier}
+          source="Session Complete"
+          onComplete={clearXPAward}
+        />
+      )}
+      {achievementData && (
+        <AchievementPopup
+          achievement={achievementData}
+          onDismiss={dismissAchievement}
+        />
+      )}
     </div>
   );
 }

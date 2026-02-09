@@ -25,8 +25,7 @@ const LEAGUES = {
     name: "Talib",
     arabicName: "طالب",
     subtitle: "Student",
-    color: "amber",
-    bgGradient: "from-amber-500 to-orange-500",
+    bgGradient: "from-[#059669] to-[#047857]",
     icon: BookOpen,
     minXP: 0,
     maxXP: 1000,
@@ -35,8 +34,7 @@ const LEAGUES = {
     name: "Qari",
     arabicName: "قارئ",
     subtitle: "Reciter",
-    color: "zinc",
-    bgGradient: "from-zinc-400 to-zinc-600",
+    bgGradient: "from-[#0d9488] to-[#0f766e]",
     icon: Mic,
     minXP: 1000,
     maxXP: 3000,
@@ -45,8 +43,7 @@ const LEAGUES = {
     name: "Hafiz",
     arabicName: "حافظ",
     subtitle: "Memorizer",
-    color: "yellow",
-    bgGradient: "from-yellow-400 to-yellow-600",
+    bgGradient: "from-[#065f46] to-[#064e3b]",
     icon: Brain,
     minXP: 3000,
     maxXP: 7000,
@@ -55,8 +52,7 @@ const LEAGUES = {
     name: "Sheikh",
     arabicName: "شيخ",
     subtitle: "Scholar",
-    color: "cyan",
-    bgGradient: "from-cyan-400 to-blue-500",
+    bgGradient: "from-[#B8860B] to-[#8B6914]",
     icon: GraduationCap,
     minXP: 7000,
     maxXP: 15000,
@@ -65,8 +61,7 @@ const LEAGUES = {
     name: "Imam",
     arabicName: "إمام",
     subtitle: "Leader",
-    color: "purple",
-    bgGradient: "from-purple-500 to-pink-600",
+    bgGradient: "from-[#FFD700] to-[#B8860B]",
     icon: Crown,
     minXP: 15000,
     maxXP: Infinity,
@@ -143,12 +138,12 @@ export function LeagueStandings({
       </div>
 
       {/* Weekly XP Progress */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-800">
+      <div className="bg-white dark:bg-[#0F1A14] rounded-xl p-4 shadow-md border border-[#D1E0D8] dark:border-[#00E5A0]/10">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <span className="text-sm font-semibold text-foreground">
             Weekly XP
           </span>
-          <span className="text-lg font-bold text-gray-900 dark:text-white">
+          <span className="text-lg font-bold text-foreground">
             {weeklyXP.toLocaleString()} XP
           </span>
         </div>
@@ -156,7 +151,7 @@ export function LeagueStandings({
         {league.maxXP !== Infinity && (
           <>
             <Progress value={leagueProgress} className="h-2 mb-2" />
-            <div className="text-xs text-gray-500 dark:text-gray-400 text-right">
+            <div className="text-xs text-muted-foreground text-right">
               {(league.maxXP - weeklyXP).toLocaleString()} XP to next league
             </div>
           </>
@@ -165,8 +160,8 @@ export function LeagueStandings({
 
       {/* Promotion/Demotion Zone Indicator */}
       {rank && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-800">
-          <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+        <div className="bg-white dark:bg-[#0F1A14] rounded-xl p-4 shadow-md border border-[#D1E0D8] dark:border-[#00E5A0]/10">
+          <div className="text-sm font-semibold text-foreground mb-3">
             Weekly Standing
           </div>
 
@@ -203,12 +198,12 @@ export function LeagueStandings({
           )}
 
           {!isPromotionZone && !isDemotionZone && (
-            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 p-3 bg-[#059669]/5 dark:bg-[#00E5A0]/5 rounded-lg border border-[#D1E0D8] dark:border-[#00E5A0]/10">
               <div className="flex-1">
-                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="text-sm font-medium text-foreground">
                   Safe Zone
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
+                <div className="text-xs text-muted-foreground">
                   Keep earning XP to climb the ranks
                 </div>
               </div>
@@ -218,8 +213,8 @@ export function LeagueStandings({
       )}
 
       {/* League Tiers */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-800">
-        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+      <div className="bg-white dark:bg-[#0F1A14] rounded-xl p-4 shadow-md border border-[#D1E0D8] dark:border-[#00E5A0]/10">
+        <div className="text-sm font-semibold text-foreground mb-3">
           All Leagues
         </div>
         <div className="space-y-2">
@@ -235,7 +230,7 @@ export function LeagueStandings({
                   className={cn(
                     "flex items-center gap-3 p-2 rounded-lg transition-all",
                     isCurrent
-                      ? "bg-gray-100 dark:bg-gray-800 ring-2 ring-offset-2 ring-gray-300 dark:ring-gray-600"
+                      ? "bg-[#059669]/5 dark:bg-[#00E5A0]/5 ring-2 ring-offset-2 ring-[#059669]/30 dark:ring-[#00E5A0]/30"
                       : "opacity-50 hover:opacity-75"
                   )}
                 >
@@ -248,15 +243,15 @@ export function LeagueStandings({
                     <LeagueIcon className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <div className="text-sm font-semibold text-foreground">
                       {leagueData.name}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-muted-foreground">
                       {leagueData.subtitle}
                     </div>
                   </div>
                   {isCurrent && (
-                    <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">
+                    <div className="text-xs font-semibold text-[#059669] dark:text-[#00E5A0] bg-[#059669]/10 dark:bg-[#00E5A0]/10 px-2 py-1 rounded">
                       Current
                     </div>
                   )}

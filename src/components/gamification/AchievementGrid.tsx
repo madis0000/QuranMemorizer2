@@ -34,28 +34,28 @@ const CATEGORIES = [
 
 const RARITY_COLORS = {
   common: {
-    border: "border-zinc-300 dark:border-zinc-700",
-    bg: "bg-zinc-50 dark:bg-zinc-900",
-    glow: "shadow-zinc-500/10",
-    text: "text-zinc-700 dark:text-zinc-300",
+    border: "border-[#059669]/30 dark:border-[#00E5A0]/30",
+    bg: "bg-[#059669]/5 dark:bg-[#00E5A0]/5",
+    glow: "shadow-[#059669]/10",
+    text: "text-[#059669] dark:text-[#00E5A0]",
   },
   rare: {
-    border: "border-blue-400 dark:border-blue-600",
-    bg: "bg-blue-50 dark:bg-blue-950",
-    glow: "shadow-blue-500/20",
-    text: "text-blue-700 dark:text-blue-300",
+    border: "border-[#0d9488]/40 dark:border-[#2dd4bf]/40",
+    bg: "bg-[#0d9488]/5 dark:bg-[#2dd4bf]/5",
+    glow: "shadow-[#0d9488]/20",
+    text: "text-[#0d9488] dark:text-[#2dd4bf]",
   },
   epic: {
-    border: "border-purple-400 dark:border-purple-600",
-    bg: "bg-purple-50 dark:bg-purple-950",
-    glow: "shadow-purple-500/30",
-    text: "text-purple-700 dark:text-purple-300",
+    border: "border-[#065f46]/40 dark:border-[#34d399]/40",
+    bg: "bg-[#065f46]/5 dark:bg-[#34d399]/5",
+    glow: "shadow-[#065f46]/30",
+    text: "text-[#065f46] dark:text-[#34d399]",
   },
   legendary: {
-    border: "border-amber-400 dark:border-amber-600",
-    bg: "bg-amber-50 dark:bg-amber-950",
-    glow: "shadow-amber-500/40",
-    text: "text-amber-700 dark:text-amber-300",
+    border: "border-[#FFD700]/40 dark:border-[#FFD700]/40",
+    bg: "bg-[#FFD700]/5 dark:bg-[#FFD700]/5",
+    glow: "shadow-[#FFD700]/40",
+    text: "text-[#B8860B] dark:text-[#FFD700]",
   },
 };
 
@@ -80,10 +80,8 @@ export function AchievementGrid({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Achievements
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <h2 className="text-2xl font-bold text-foreground">Achievements</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             {earnedCount} / {totalCount} Unlocked
           </p>
         </div>
@@ -98,7 +96,7 @@ export function AchievementGrid({
               stroke="currentColor"
               strokeWidth="6"
               fill="none"
-              className="text-gray-200 dark:text-gray-800"
+              className="text-[#D1E0D8] dark:text-[#00E5A0]/10"
             />
             <circle
               cx="40"
@@ -108,11 +106,11 @@ export function AchievementGrid({
               strokeWidth="6"
               fill="none"
               strokeDasharray={`${(earnedCount / totalCount) * 213.628} 213.628`}
-              className="text-amber-500 transition-all duration-500"
+              className="text-[#059669] dark:text-[#00E5A0] transition-all duration-500"
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-lg font-bold text-gray-900 dark:text-white">
+            <span className="text-lg font-bold text-foreground">
               {Math.round((earnedCount / totalCount) * 100)}%
             </span>
           </div>
@@ -170,7 +168,7 @@ export function AchievementGrid({
                           "shadow-lg",
                           rarityStyle.glow
                         )
-                      : "border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 opacity-60 grayscale"
+                      : "border border-[#D1E0D8] dark:border-[#00E5A0]/10 bg-muted/30 opacity-60 grayscale"
                   )}
                   onClick={() => setSelectedAchievement(achievement)}
                 >
@@ -196,7 +194,7 @@ export function AchievementGrid({
                         "w-16 h-16 rounded-full flex items-center justify-center",
                         achievement.earned
                           ? cn(rarityStyle.bg, "ring-4", rarityStyle.border)
-                          : "bg-gray-200 dark:bg-gray-800"
+                          : "bg-[#D1E0D8] dark:bg-[#1a2e23]"
                       )}
                     >
                       {isLocked ? (
@@ -219,8 +217,8 @@ export function AchievementGrid({
                     className={cn(
                       "text-center font-semibold mb-1",
                       achievement.earned
-                        ? "text-gray-900 dark:text-white"
-                        : "text-gray-500 dark:text-gray-400"
+                        ? "text-foreground"
+                        : "text-muted-foreground"
                     )}
                   >
                     {isSecret ? "???" : achievement.name}
@@ -231,8 +229,8 @@ export function AchievementGrid({
                     className={cn(
                       "text-xs text-center line-clamp-2",
                       achievement.earned
-                        ? "text-gray-600 dark:text-gray-300"
-                        : "text-gray-400 dark:text-gray-500"
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground/70"
                     )}
                   >
                     {isSecret ? "Secret achievement" : achievement.description}
@@ -240,8 +238,8 @@ export function AchievementGrid({
 
                   {/* Earned Date */}
                   {achievement.earned && achievement.earnedAt && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-3 pt-3 border-t border-[#D1E0D8] dark:border-[#00E5A0]/10">
+                      <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="w-3 h-3" />
                         <span>
                           {new Date(achievement.earnedAt).toLocaleDateString()}
@@ -257,11 +255,13 @@ export function AchievementGrid({
                         "absolute inset-0 rounded-lg opacity-0 hover:opacity-100 transition-opacity",
                         "bg-gradient-to-t from-transparent via-transparent",
                         achievement.rarity === "legendary" &&
-                          "to-amber-500/10 animate-pulse",
+                          "to-[#FFD700]/10 animate-pulse",
                         achievement.rarity === "epic" &&
-                          "to-purple-500/10 animate-pulse",
-                        achievement.rarity === "rare" && "to-blue-500/10",
-                        achievement.rarity === "common" && "to-zinc-500/10"
+                          "to-[#065f46]/10 dark:to-[#34d399]/10 animate-pulse",
+                        achievement.rarity === "rare" &&
+                          "to-[#0d9488]/10 dark:to-[#2dd4bf]/10",
+                        achievement.rarity === "common" &&
+                          "to-[#059669]/10 dark:to-[#00E5A0]/10"
                       )}
                     />
                   )}
@@ -273,8 +273,8 @@ export function AchievementGrid({
           {/* Empty State */}
           {filteredAchievements.length === 0 && (
             <div className="text-center py-12">
-              <Trophy className="w-16 h-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">
+              <Trophy className="w-16 h-16 text-[#D1E0D8] dark:text-[#1a2e23] mx-auto mb-4" />
+              <p className="text-muted-foreground">
                 No achievements in this category yet
               </p>
             </div>
@@ -303,7 +303,7 @@ export function AchievementGrid({
                         "ring-4",
                         RARITY_COLORS[selectedAchievement.rarity].border
                       )
-                    : "bg-gray-200 dark:bg-gray-800"
+                    : "bg-[#D1E0D8] dark:bg-[#1a2e23]"
                 )}
               >
                 {selectedAchievement.earned ? (
@@ -331,7 +331,7 @@ export function AchievementGrid({
                         "border",
                         RARITY_COLORS[selectedAchievement.rarity].border
                       )
-                    : "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                    : "bg-[#D1E0D8] dark:bg-[#1a2e23] text-muted-foreground"
                 )}
               >
                 {selectedAchievement.rarity}
@@ -339,14 +339,14 @@ export function AchievementGrid({
             </div>
 
             {/* Name */}
-            <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white">
+            <h2 className="text-2xl font-bold text-center text-foreground">
               {selectedAchievement.secret && !selectedAchievement.earned
                 ? "Secret Achievement"
                 : selectedAchievement.name}
             </h2>
 
             {/* Description */}
-            <p className="text-center text-gray-600 dark:text-gray-300">
+            <p className="text-center text-muted-foreground">
               {selectedAchievement.secret && !selectedAchievement.earned
                 ? "Complete the requirements to unlock this secret achievement."
                 : selectedAchievement.description}
@@ -354,8 +354,8 @@ export function AchievementGrid({
 
             {/* Earned Date */}
             {selectedAchievement.earned && selectedAchievement.earnedAt && (
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="pt-4 border-t border-[#D1E0D8] dark:border-[#00E5A0]/10">
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
                   <span>
                     Earned on{" "}
@@ -375,7 +375,7 @@ export function AchievementGrid({
             {/* Close Button */}
             <button
               onClick={() => setSelectedAchievement(null)}
-              className="w-full py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg font-medium transition-colors"
+              className="w-full py-2 bg-[#059669]/10 dark:bg-[#00E5A0]/10 hover:bg-[#059669]/20 dark:hover:bg-[#00E5A0]/20 rounded-lg font-medium transition-colors"
             >
               Close
             </button>

@@ -37,12 +37,12 @@ const JUZ_PAGE_BOUNDARIES = [
 ] as const;
 
 const MASTERY_COLORS: Record<MasteryLevel, string> = {
-  not_started: "bg-muted",
+  not_started: "bg-[#D1E0D8]/50 dark:bg-[#1a2e23]/50",
   weak: "bg-red-400 dark:bg-red-600",
-  learning: "bg-orange-400 dark:bg-orange-600",
-  moderate: "bg-yellow-400 dark:bg-yellow-600",
-  strong: "bg-green-400 dark:bg-green-600",
-  mastered: "bg-amber-300 dark:bg-amber-500",
+  learning: "bg-[#B8860B]/60 dark:bg-[#d97706]/60",
+  moderate: "bg-[#FFD700]/60 dark:bg-[#FFD700]/50",
+  strong: "bg-[#059669]/60 dark:bg-[#00E5A0]/60",
+  mastered: "bg-[#059669] dark:bg-[#00E5A0]/80",
 };
 
 const MASTERY_LABELS: Record<MasteryLevel, string> = {

@@ -103,10 +103,11 @@ export function generateHeatmap(
 
 /**
  * Get a date string offset by N days.
+ * Uses UTC arithmetic to avoid timezone issues with toISOString().
  */
 function getDateOffset(dateStr: string, days: number): string {
-  const date = new Date(dateStr + "T00:00:00");
-  date.setDate(date.getDate() + days);
+  const date = new Date(dateStr + "T00:00:00Z");
+  date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().split("T")[0];
 }
 

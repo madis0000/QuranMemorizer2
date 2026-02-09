@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 import { QueryProvider } from "@/lib/providers/query-provider";
+import { LocaleProvider } from "@/components/providers/LocaleProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 import "./globals.css";
 
@@ -67,7 +69,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            <LocaleProvider>{children}</LocaleProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

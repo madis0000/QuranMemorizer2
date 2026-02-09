@@ -144,9 +144,21 @@
   --foreground: 39 30% 20%;
   --card: 39 70% 92%;
   --card-foreground: 39 30% 20%;
+  --popover: 39 70% 92%;
+  --popover-foreground: 39 30% 20%;
+  --primary: 39 60% 30%;
+  --primary-foreground: 39 77% 95%;
+  --secondary: 39 50% 88%;
+  --secondary-foreground: 39 40% 25%;
   --muted: 39 50% 85%;
   --muted-foreground: 39 20% 40%;
+  --accent: 39 50% 88%;
+  --accent-foreground: 39 40% 25%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 39 77% 95%;
   --border: 39 40% 80%;
+  --input: 39 40% 80%;
+  --ring: 39 50% 50%;
 }
 
 @theme inline {
@@ -656,6 +668,41 @@ body {
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+/* ===== Accessibility ===== */
+
+/* Focus visible indicator */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Skip to content link for keyboard navigation */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  z-index: 999;
+  padding: 0.5rem 1rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  text-decoration: none;
+  border-radius: 0 0 0.5rem 0;
+}
+
+.skip-to-content:focus {
+  left: 0;
 }
 
 @layer base {

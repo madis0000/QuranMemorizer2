@@ -6,6 +6,7 @@ const en: Record<string, string> = {
   "nav.search": "Search",
   "nav.progress": "Progress",
   "nav.settings": "Settings",
+  "nav.circles": "Circles",
 
   // Auth
   "auth.login": "Sign In",
@@ -32,6 +33,9 @@ const en: Record<string, string> = {
   "memorize.correct": "Correct",
   "memorize.sessionComplete": "Session Complete",
   "memorize.practiceAgain": "Practice Again",
+  "memorize.start_session": "Start Session",
+  "memorize.stop": "Stop",
+  "memorize.compare": "Compare & Score",
 
   // Voice
   "voice.tapToStart": "Tap to start reciting",
@@ -47,6 +51,13 @@ const en: Record<string, string> = {
   "progress.thisWeek": "This Week",
   "progress.accuracy": "Accuracy",
   "progress.badges": "Badges",
+  "progress.current_streak": "Current Streak",
+  "progress.total_sessions": "Total Sessions",
+  "progress.days": "days",
+
+  // Streak
+  "streak.keep_going": "Keep it going!",
+  "streak.day_streak": "Day Streak",
 
   // Settings
   "settings.title": "Settings",
@@ -56,6 +67,12 @@ const en: Record<string, string> = {
   "settings.audio": "Audio",
   "settings.notifications": "Notifications",
   "settings.account": "Account",
+  "settings.language": "Language",
+  "settings.privacy": "Privacy",
+  "settings.daily_reminder": "Daily Reminder",
+  "settings.streak_reminder": "Streak Reminder",
+  "settings.sound": "Sound Effects",
+  "settings.sign_out": "Sign Out",
 
   // Common
   "common.loading": "Loading...",
@@ -66,6 +83,43 @@ const en: Record<string, string> = {
   "common.done": "Done",
   "common.reset": "Reset",
   "common.back": "Back",
+  "common.delete": "Delete",
+  "common.edit": "Edit",
+  "common.close": "Close",
+  "common.next": "Next",
+  "common.start": "Start",
+
+  // Onboarding
+  "onboarding.welcome": "Welcome to QuranMemorizer",
+  "onboarding.choose_language": "Choose your language",
+  "onboarding.choose_edition": "Choose Mushaf Edition",
+  "onboarding.set_goal": "Set Your Goal",
+  "onboarding.experience": "Your Experience Level",
+  "onboarding.daily_time": "Daily Time Commitment",
+  "onboarding.get_started": "Get Started",
+  "onboarding.goal_memorize": "Start Memorizing",
+  "onboarding.goal_review": "Review & Revise",
+  "onboarding.goal_tajweed": "Improve Tajweed",
+  "onboarding.goal_memorize_desc": "Begin memorizing new surahs and ayahs",
+  "onboarding.goal_review_desc": "Strengthen what you have already memorized",
+  "onboarding.goal_tajweed_desc": "Perfect your recitation and pronunciation",
+  "onboarding.exp_beginner": "Beginner",
+  "onboarding.exp_intermediate": "Intermediate",
+  "onboarding.exp_hafiz": "Hafiz",
+  "onboarding.exp_beginner_desc": "Just starting my memorization journey",
+  "onboarding.exp_intermediate_desc": "Memorized several surahs already",
+  "onboarding.exp_hafiz_desc": "Completed memorization of the Quran",
+  "onboarding.time_5": "5 minutes",
+  "onboarding.time_15": "15 minutes",
+  "onboarding.time_30": "30 minutes",
+  "onboarding.time_60": "60 minutes",
+  "onboarding.edition_madinah_1405": "Madinah 1405H",
+  "onboarding.edition_madinah_1421": "Madinah 1421H",
+  "onboarding.edition_indopak_15": "IndoPak 15 Lines",
+  "onboarding.edition_indopak_13": "IndoPak 13 Lines",
+  "onboarding.summary": "You are all set!",
+  "onboarding.summary_desc":
+    "Your preferences have been saved. You can change them anytime in Settings.",
 };
 
 export default en;

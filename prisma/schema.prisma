@@ -87,6 +87,7 @@ model User {
   fsrsCards       FSRSCard[]
   xpTransactions  XPTransaction[]
   leagueStandings LeagueStanding[]
+  circleMembers   CircleMember[]
 
   @@index([email])
 }
@@ -402,3 +403,77 @@ model Bookmark {
 //     goalReminder: boolean;
 //   };
 // }
+
+// ===== Hifz Circles (Social) =====
+
+model HifzCircle {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  isPublic    Boolean  @default(true)
+  maxMembers  Int      @default(50)
+  inviteCode  String   @unique @default(cuid())
+  groupStreak Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     CircleMember[]
+  challenges  CircleChallenge[]
+  activities  CircleActivity[]
+
+  @@index([isPublic])
+}
+
+model CircleMember {
+  id           String     @id @default(cuid())
+  userId       String
+  circleId     String
+  role         CircleRole @default(MEMBER)
+  weeklyXP     Int        @default(0)
+  joinedAt     DateTime   @default(now())
+  lastActiveAt DateTime   @default(now())
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  circle HifzCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, circleId])
+  @@index([circleId])
+  @@index([userId])
+}
+
+enum CircleRole {
+  OWNER
+  TEACHER
+  MEMBER
+}
+
+model CircleChallenge {
+  id          String   @id @default(cuid())
+  circleId    String
+  title       String
+  description String?
+  type        String   // "collective_recite", "accuracy", "streak"
+  target      Json     // { surahNumber: 67, totalVerses: 30 }
+  progress    Int      @default(0)
+  isActive    Boolean  @default(true)
+  startDate   DateTime @default(now())
+  endDate     DateTime
+
+  circle HifzCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+
+  @@index([circleId, isActive])
+}
+
+model CircleActivity {
+  id        String   @id @default(cuid())
+  circleId  String
+  userId    String
+  type      String   // "session_complete", "badge_earned", "streak_milestone", "joined"
+  data      Json?    // { surahNumber: 2, accuracy: 95, ... }
+  createdAt DateTime @default(now())
+
+  circle HifzCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+
+  @@index([circleId, createdAt])
+}

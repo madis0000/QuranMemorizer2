@@ -6,6 +6,7 @@ const ur: Record<string, string> = {
   "nav.search": "تلاش",
   "nav.progress": "پیشرفت",
   "nav.settings": "ترتیبات",
+  "nav.circles": "حلقے",
 
   // Auth
   "auth.login": "سائن ان",
@@ -32,6 +33,9 @@ const ur: Record<string, string> = {
   "memorize.correct": "درست",
   "memorize.sessionComplete": "سیشن مکمل",
   "memorize.practiceAgain": "دوبارہ مشق کریں",
+  "memorize.start_session": "سیشن شروع کریں",
+  "memorize.stop": "روکیں",
+  "memorize.compare": "موازنہ کریں",
 
   // Voice
   "voice.tapToStart": "تلاوت شروع کرنے کے لیے ٹیپ کریں",
@@ -47,6 +51,13 @@ const ur: Record<string, string> = {
   "progress.thisWeek": "اس ہفتے",
   "progress.accuracy": "درستگی",
   "progress.badges": "تمغے",
+  "progress.current_streak": "موجودہ سلسلہ",
+  "progress.total_sessions": "کل سیشنز",
+  "progress.days": "دن",
+
+  // Streak
+  "streak.keep_going": "جاری رکھیں!",
+  "streak.day_streak": "دن کا سلسلہ",
 
   // Settings
   "settings.title": "ترتیبات",
@@ -56,6 +67,12 @@ const ur: Record<string, string> = {
   "settings.audio": "آڈیو",
   "settings.notifications": "اطلاعات",
   "settings.account": "اکاؤنٹ",
+  "settings.language": "زبان",
+  "settings.privacy": "رازداری",
+  "settings.daily_reminder": "روزانہ یاد دہانی",
+  "settings.streak_reminder": "سلسلہ یاد دہانی",
+  "settings.sound": "آواز کے اثرات",
+  "settings.sign_out": "سائن آؤٹ",
 
   // Common
   "common.loading": "لوڈ ہو رہا ہے...",
@@ -66,6 +83,43 @@ const ur: Record<string, string> = {
   "common.done": "ہو گیا",
   "common.reset": "ری سیٹ",
   "common.back": "واپس",
+  "common.delete": "حذف کریں",
+  "common.edit": "ترمیم",
+  "common.close": "بند کریں",
+  "common.next": "اگلا",
+  "common.start": "شروع کریں",
+
+  // Onboarding
+  "onboarding.welcome": "قرآن حافظ میں خوش آمدید",
+  "onboarding.choose_language": "اپنی زبان منتخب کریں",
+  "onboarding.choose_edition": "مصحف ایڈیشن منتخب کریں",
+  "onboarding.set_goal": "اپنا مقصد مقرر کریں",
+  "onboarding.experience": "آپ کا تجربہ",
+  "onboarding.daily_time": "روزانہ وقت",
+  "onboarding.get_started": "شروع کریں",
+  "onboarding.goal_memorize": "حفظ شروع کریں",
+  "onboarding.goal_review": "مراجعہ اور دہرائی",
+  "onboarding.goal_tajweed": "تجوید بہتر کریں",
+  "onboarding.goal_memorize_desc": "نئی سورتیں اور آیات حفظ کرنا شروع کریں",
+  "onboarding.goal_review_desc": "جو آپ نے پہلے حفظ کیا ہے اسے مضبوط کریں",
+  "onboarding.goal_tajweed_desc": "اپنی تلاوت اور تلفظ کو بہتر بنائیں",
+  "onboarding.exp_beginner": "مبتدی",
+  "onboarding.exp_intermediate": "درمیانہ",
+  "onboarding.exp_hafiz": "حافظ",
+  "onboarding.exp_beginner_desc": "ابھی حفظ کا سفر شروع کیا ہے",
+  "onboarding.exp_intermediate_desc": "کئی سورتیں پہلے سے حفظ ہیں",
+  "onboarding.exp_hafiz_desc": "قرآن کریم کا حفظ مکمل کر لیا ہے",
+  "onboarding.time_5": "5 منٹ",
+  "onboarding.time_15": "15 منٹ",
+  "onboarding.time_30": "30 منٹ",
+  "onboarding.time_60": "60 منٹ",
+  "onboarding.edition_madinah_1405": "مدینہ 1405ھ",
+  "onboarding.edition_madinah_1421": "مدینہ 1421ھ",
+  "onboarding.edition_indopak_15": "انڈو پاک 15 سطور",
+  "onboarding.edition_indopak_13": "انڈو پاک 13 سطور",
+  "onboarding.summary": "آپ تیار ہیں!",
+  "onboarding.summary_desc":
+    "آپ کی ترجیحات محفوظ ہو گئی ہیں۔ آپ انہیں کسی بھی وقت ترتیبات سے تبدیل کر سکتے ہیں۔",
 };
 
 export default ur;

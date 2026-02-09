@@ -43,9 +43,10 @@ export async function transcribeWithWhisper(
 export function shouldUseWhisper(): boolean {
   if (typeof window === "undefined") return true;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const win = window as Record<string, any>;
   const SpeechRecognition =
-    (window as any).SpeechRecognition ||
-    (window as any).webkitSpeechRecognition; // eslint-disable-line @typescript-eslint/no-explicit-any
+    win.SpeechRecognition || win.webkitSpeechRecognition;
 
   if (!SpeechRecognition) return true;
 

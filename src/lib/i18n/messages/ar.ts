@@ -6,6 +6,7 @@ const ar: Record<string, string> = {
   "nav.search": "البحث",
   "nav.progress": "التقدم",
   "nav.settings": "الإعدادات",
+  "nav.circles": "الحلقات",
 
   // Auth
   "auth.login": "تسجيل الدخول",
@@ -32,6 +33,9 @@ const ar: Record<string, string> = {
   "memorize.correct": "صحيح",
   "memorize.sessionComplete": "اكتملت الجلسة",
   "memorize.practiceAgain": "تدرّب مرة أخرى",
+  "memorize.start_session": "بدء الجلسة",
+  "memorize.stop": "إيقاف",
+  "memorize.compare": "قارن وسجل",
 
   // Voice
   "voice.tapToStart": "اضغط لبدء التلاوة",
@@ -47,6 +51,13 @@ const ar: Record<string, string> = {
   "progress.thisWeek": "هذا الأسبوع",
   "progress.accuracy": "الدقة",
   "progress.badges": "الأوسمة",
+  "progress.current_streak": "السلسلة الحالية",
+  "progress.total_sessions": "إجمالي الجلسات",
+  "progress.days": "أيام",
+
+  // Streak
+  "streak.keep_going": "استمر!",
+  "streak.day_streak": "سلسلة أيام",
 
   // Settings
   "settings.title": "الإعدادات",
@@ -56,6 +67,12 @@ const ar: Record<string, string> = {
   "settings.audio": "الصوت",
   "settings.notifications": "الإشعارات",
   "settings.account": "الحساب",
+  "settings.language": "اللغة",
+  "settings.privacy": "الخصوصية",
+  "settings.daily_reminder": "التذكير اليومي",
+  "settings.streak_reminder": "تذكير السلسلة",
+  "settings.sound": "المؤثرات الصوتية",
+  "settings.sign_out": "تسجيل الخروج",
 
   // Common
   "common.loading": "جاري التحميل...",
@@ -66,6 +83,43 @@ const ar: Record<string, string> = {
   "common.done": "تم",
   "common.reset": "إعادة تعيين",
   "common.back": "رجوع",
+  "common.delete": "حذف",
+  "common.edit": "تعديل",
+  "common.close": "إغلاق",
+  "common.next": "التالي",
+  "common.start": "ابدأ",
+
+  // Onboarding
+  "onboarding.welcome": "مرحباً بك في حافظ القرآن",
+  "onboarding.choose_language": "اختر لغتك",
+  "onboarding.choose_edition": "اختر طبعة المصحف",
+  "onboarding.set_goal": "حدد هدفك",
+  "onboarding.experience": "مستوى خبرتك",
+  "onboarding.daily_time": "الوقت اليومي المتاح",
+  "onboarding.get_started": "ابدأ الآن",
+  "onboarding.goal_memorize": "ابدأ الحفظ",
+  "onboarding.goal_review": "مراجعة وتثبيت",
+  "onboarding.goal_tajweed": "تحسين التجويد",
+  "onboarding.goal_memorize_desc": "ابدأ حفظ سور وآيات جديدة",
+  "onboarding.goal_review_desc": "عزز ما حفظته بالفعل",
+  "onboarding.goal_tajweed_desc": "أتقن تلاوتك ونطقك",
+  "onboarding.exp_beginner": "مبتدئ",
+  "onboarding.exp_intermediate": "متوسط",
+  "onboarding.exp_hafiz": "حافظ",
+  "onboarding.exp_beginner_desc": "بدأت رحلة الحفظ للتو",
+  "onboarding.exp_intermediate_desc": "حفظت عدة سور بالفعل",
+  "onboarding.exp_hafiz_desc": "أكملت حفظ القرآن الكريم",
+  "onboarding.time_5": "5 دقائق",
+  "onboarding.time_15": "15 دقيقة",
+  "onboarding.time_30": "30 دقيقة",
+  "onboarding.time_60": "60 دقيقة",
+  "onboarding.edition_madinah_1405": "المدينة 1405هـ",
+  "onboarding.edition_madinah_1421": "المدينة 1421هـ",
+  "onboarding.edition_indopak_15": "الخط الهندي 15 سطر",
+  "onboarding.edition_indopak_13": "الخط الهندي 13 سطر",
+  "onboarding.summary": "أنت جاهز!",
+  "onboarding.summary_desc":
+    "تم حفظ تفضيلاتك. يمكنك تغييرها في أي وقت من الإعدادات.",
 };
 
 export default ar;

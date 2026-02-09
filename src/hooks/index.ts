@@ -52,3 +52,26 @@ export type {
   VoiceSearchResultItem,
   VoiceSearchStatus,
 } from "./use-voice-search";
+
+// Circles (social) hooks
+export {
+  circleKeys,
+  useCircles,
+  useCircle,
+  useCreateCircle,
+  useJoinCircle,
+  useLeaveCircle,
+  useKickMember,
+  useCircleActivity,
+  useCircleChallenges,
+  useCreateChallenge,
+  useUpdateCircle,
+  useDeleteCircle,
+} from "./use-circles";
+export type {
+  CircleListItem,
+  CircleMemberItem,
+  CircleChallengeItem,
+  CircleActivityItem,
+  CircleDetail,
+} from "./use-circles";

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useUserStore } from "@/stores";
 import {
   BarChart3,
@@ -13,22 +13,25 @@ import {
   Menu,
   Search,
   Settings,
+  Users,
   X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/use-translation";
 import { MiniPlayer } from "@/components/audio/MiniPlayer";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { VoiceSearchFAB } from "@/components/voice/VoiceSearchFAB";
 
 const navigation = [
-  { name: "Quran", href: "/quran", icon: BookOpen },
-  { name: "Memorize", href: "/memorize", icon: Brain },
-  { name: "Listen", href: "/listen", icon: Headphones },
-  { name: "Search", href: "/search", icon: Search },
-  { name: "Progress", href: "/progress", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { nameKey: "nav.quran", href: "/quran", icon: BookOpen },
+  { nameKey: "nav.memorize", href: "/memorize", icon: Brain },
+  { nameKey: "nav.listen", href: "/listen", icon: Headphones },
+  { nameKey: "nav.search", href: "/search", icon: Search },
+  { nameKey: "nav.progress", href: "/progress", icon: BarChart3 },
+  { nameKey: "nav.circles", href: "/circles", icon: Users },
+  { nameKey: "nav.settings", href: "/settings", icon: Settings },
 ];
 
 export default function MainLayout({
@@ -37,8 +40,17 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { streak, sidebarOpen, toggleSidebar } = useUserStore();
+  const { streak, sidebarOpen, toggleSidebar, isOnboarded } = useUserStore();
+  const { t } = useTranslation();
+
+  // Redirect to onboarding if not completed
+  useEffect(() => {
+    if (!isOnboarded && pathname !== "/onboarding") {
+      router.push("/onboarding");
+    }
+  }, [isOnboarded, pathname, router]);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -76,7 +88,7 @@ export default function MainLayout({
               const isActive = pathname.startsWith(item.href);
               return (
                 <Link
-                  key={item.name}
+                  key={item.nameKey}
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
@@ -86,7 +98,7 @@ export default function MainLayout({
                   )}
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
-                  {sidebarOpen && <span>{item.name}</span>}
+                  {sidebarOpen && <span>{t(item.nameKey)}</span>}
                 </Link>
               );
             })}
@@ -99,10 +111,10 @@ export default function MainLayout({
                 <Flame className="h-5 w-5 text-orange-500" />
                 <div>
                   <p className="text-sm font-medium">
-                    {streak.currentStreak} Day Streak
+                    {streak.currentStreak} {t("streak.day_streak")}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Keep it going!
+                    {t("streak.keep_going")}
                   </p>
                 </div>
               </div>
@@ -146,7 +158,7 @@ export default function MainLayout({
               const isActive = pathname.startsWith(item.href);
               return (
                 <Link
-                  key={item.name}
+                  key={item.nameKey}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
@@ -157,7 +169,7 @@ export default function MainLayout({
                   )}
                 >
                   <item.icon className="h-5 w-5" />
-                  <span>{item.name}</span>
+                  <span>{t(item.nameKey)}</span>
                 </Link>
               );
             })}

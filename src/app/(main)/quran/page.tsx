@@ -88,7 +88,7 @@ export default function QuranPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <header className="sticky top-0 z-40 border-b border-[#D1E0D8] bg-white/80 backdrop-blur-sm dark:border-[#00E5A0]/10 dark:bg-[#0F1A14]/90">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-4">
             {/* Mobile surah list toggle */}
@@ -201,7 +201,7 @@ export default function QuranPage() {
         </main>
 
         {/* Desktop Surah Sidebar */}
-        <aside className="fixed right-0 top-14 bottom-0 w-64 border-l border-border bg-card hidden xl:block overflow-y-auto">
+        <aside className="fixed right-0 top-14 bottom-0 w-64 border-l border-[#D1E0D8] bg-white/80 backdrop-blur-sm dark:border-[#00E5A0]/10 dark:bg-[#0F1A14]/90 hidden xl:block overflow-y-auto">
           <div className="p-4">
             <h2 className="font-semibold mb-4 flex items-center gap-2">
               <List className="h-4 w-4" />
@@ -241,7 +241,10 @@ function SurahList({ surahs, isLoading, onSelect }: SurahListProps) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="h-12 bg-muted/50 rounded-lg animate-pulse" />
+          <div
+            key={i}
+            className="h-12 bg-[#059669]/5 dark:bg-[#00E5A0]/5 rounded-lg animate-pulse"
+          />
         ))}
       </div>
     );
@@ -260,7 +263,7 @@ function SurahList({ surahs, isLoading, onSelect }: SurahListProps) {
           )}
         >
           <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
+            <span className="w-8 h-8 rounded-full bg-[#059669]/10 text-[#059669] dark:bg-[#00E5A0]/10 dark:text-[#00E5A0] flex items-center justify-center text-xs font-medium">
               {surah.number}
             </span>
             <div className="text-left">
@@ -292,7 +295,7 @@ interface WordInfoPanelProps {
 function WordInfoPanel({ word, onClose }: WordInfoPanelProps) {
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
-      <div className="bg-card border border-border rounded-lg shadow-lg p-4 min-w-[280px]">
+      <div className="bg-white/90 border border-[#D1E0D8] rounded-2xl shadow-[0_0_30px_rgba(0,229,160,0.06)] backdrop-blur-sm dark:bg-[#0F1A14]/90 dark:border-[#00E5A0]/10 p-4 min-w-[280px]">
         <div className="flex items-start justify-between mb-3">
           <div>
             <p className="font-uthmani text-2xl text-primary" dir="rtl">

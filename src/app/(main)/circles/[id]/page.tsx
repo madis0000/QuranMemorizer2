@@ -75,9 +75,9 @@ export default function CircleDetailPage({
     return (
       <div className="min-h-screen p-4 lg:p-8">
         <div className="max-w-4xl mx-auto">
-          <div className="h-8 w-48 bg-muted rounded animate-pulse mb-4" />
-          <div className="h-4 w-96 bg-muted rounded animate-pulse mb-8" />
-          <div className="h-64 bg-muted rounded-xl animate-pulse" />
+          <div className="h-8 w-48 bg-[#059669]/5 dark:bg-[#00E5A0]/5 rounded animate-pulse mb-4" />
+          <div className="h-4 w-96 bg-[#059669]/5 dark:bg-[#00E5A0]/5 rounded animate-pulse mb-8" />
+          <div className="h-64 bg-[#059669]/5 dark:bg-[#00E5A0]/5 rounded-xl animate-pulse" />
         </div>
       </div>
     );
@@ -125,7 +125,7 @@ export default function CircleDetailPage({
               </span>
               {circle.groupStreak > 0 && (
                 <span className="flex items-center gap-1">
-                  <Flame className="h-4 w-4 text-orange-500" />
+                  <Flame className="h-4 w-4 text-[#FFD700]" />
                   {circle.groupStreak} group streak
                 </span>
               )}

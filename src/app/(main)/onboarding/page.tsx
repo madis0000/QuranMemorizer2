@@ -81,8 +81,8 @@ export default function OnboardingPage() {
       >
         <div className="text-center space-y-8">
           <div className="flex justify-center">
-            <div className="h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
+            <div className="h-20 w-20 rounded-full bg-[#059669]/10 dark:bg-[#00E5A0]/10 flex items-center justify-center">
+              <CheckCircle className="h-10 w-10 text-[#059669] dark:text-[#00E5A0]" />
             </div>
           </div>
           <div className="space-y-2">

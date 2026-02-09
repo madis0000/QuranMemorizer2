@@ -186,10 +186,10 @@ export default function SearchPage() {
         </Card>
 
         {/* Voice Search Feature */}
-        <Card className="mb-6 bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+        <Card className="mb-6 bg-gradient-to-r from-[#059669]/10 to-[#059669]/5 border-[#059669]/20 dark:from-[#00E5A0]/10 dark:to-[#00E5A0]/5 dark:border-[#00E5A0]/20">
           <CardContent className="py-6">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-[#059669]/20 dark:bg-[#00E5A0]/20 flex items-center justify-center">
                 <Mic className="h-6 w-6 text-primary" />
               </div>
               <div>

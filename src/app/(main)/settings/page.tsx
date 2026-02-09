@@ -177,7 +177,7 @@ export default function SettingsPage() {
               <div>
                 <Label className="mb-3 block">Translation Language</Label>
                 <select
-                  className="w-full border border-border rounded-md px-3 py-2 bg-background"
+                  className="w-full border border-[#D1E0D8] dark:border-[#00E5A0]/10 rounded-md px-3 py-2 bg-background"
                   value={translationLanguage}
                   onChange={(e) => setTranslationLanguage(e.target.value)}
                 >

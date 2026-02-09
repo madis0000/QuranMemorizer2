@@ -6,14 +6,6 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -71,7 +63,6 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    // Client-side validation
     const validationErrors = validateForm(
       name,
       email,
@@ -108,7 +99,6 @@ export default function RegisterPage() {
         return;
       }
 
-      // Auto sign-in after successful registration
       const signInResult = await signIn("credentials", {
         email,
         password,
@@ -116,7 +106,6 @@ export default function RegisterPage() {
       });
 
       if (signInResult?.error) {
-        // Registration succeeded but auto sign-in failed; redirect to login
         router.push("/login");
       } else {
         router.push("/quran");
@@ -132,115 +121,150 @@ export default function RegisterPage() {
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle className="text-xl">Create account</CardTitle>
-        <CardDescription>
+    <div
+      className="rounded-2xl border border-[#D1E0D8] bg-white/80 p-8 backdrop-blur-sm dark:border-[#00E5A0]/10 dark:bg-[#0F1A14]/90"
+      style={{ boxShadow: "0 0 30px rgba(0,229,160,0.06)" }}
+    >
+      <div className="mb-6 text-center">
+        <h2 className="text-xl font-light text-[#1A2E22] dark:text-[#E8F0EC]">
+          Create account
+        </h2>
+        <p className="mt-1 text-sm font-light text-[#5A7B6B] dark:text-[#6B8B7B]">
           Start your Quran memorization journey today
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {errors.general && (
-            <div className="rounded-md bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
-              {errors.general}
-            </div>
-          )}
+        </p>
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              disabled={isLoading}
-              autoComplete="name"
-              aria-invalid={!!errors.name}
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name}</p>
-            )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {errors.general && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+            {errors.general}
           </div>
+        )}
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
-              autoComplete="email"
-              aria-invalid={!!errors.email}
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Min. 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-              autoComplete="new-password"
-              aria-invalid={!!errors.password}
-            />
-            {errors.password && (
-              <p className="text-sm text-destructive">{errors.password}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={isLoading}
-              autoComplete="new-password"
-              aria-invalid={!!errors.confirmPassword}
-            />
-            {errors.confirmPassword && (
-              <p className="text-sm text-destructive">
-                {errors.confirmPassword}
-              </p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full bg-green-600 hover:bg-green-700"
-            disabled={isLoading}
+        <div className="space-y-2">
+          <Label
+            htmlFor="name"
+            className="text-sm font-light text-[#1A2E22] dark:text-[#E8F0EC]"
           >
-            {isLoading ? "Creating account..." : "Create account"}
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <p className="text-sm text-muted-foreground">
+            Name
+          </Label>
+          <Input
+            id="name"
+            type="text"
+            placeholder="Your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            disabled={isLoading}
+            autoComplete="name"
+            aria-invalid={!!errors.name}
+            className="border-[#D1E0D8] bg-[#F0F5F2]/50 text-[#1A2E22] placeholder:text-[#5A7B6B]/50 focus:border-[#059669] focus:ring-[#059669] dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/50 dark:text-[#E8F0EC] dark:placeholder:text-[#6B8B7B]/50 dark:focus:border-[#00E5A0] dark:focus:ring-[#00E5A0]"
+          />
+          {errors.name && (
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {errors.name}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label
+            htmlFor="email"
+            className="text-sm font-light text-[#1A2E22] dark:text-[#E8F0EC]"
+          >
+            Email
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={isLoading}
+            autoComplete="email"
+            aria-invalid={!!errors.email}
+            className="border-[#D1E0D8] bg-[#F0F5F2]/50 text-[#1A2E22] placeholder:text-[#5A7B6B]/50 focus:border-[#059669] focus:ring-[#059669] dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/50 dark:text-[#E8F0EC] dark:placeholder:text-[#6B8B7B]/50 dark:focus:border-[#00E5A0] dark:focus:ring-[#00E5A0]"
+          />
+          {errors.email && (
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {errors.email}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label
+            htmlFor="password"
+            className="text-sm font-light text-[#1A2E22] dark:text-[#E8F0EC]"
+          >
+            Password
+          </Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Min. 8 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={isLoading}
+            autoComplete="new-password"
+            aria-invalid={!!errors.password}
+            className="border-[#D1E0D8] bg-[#F0F5F2]/50 text-[#1A2E22] placeholder:text-[#5A7B6B]/50 focus:border-[#059669] focus:ring-[#059669] dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/50 dark:text-[#E8F0EC] dark:placeholder:text-[#6B8B7B]/50 dark:focus:border-[#00E5A0] dark:focus:ring-[#00E5A0]"
+          />
+          {errors.password && (
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {errors.password}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label
+            htmlFor="confirmPassword"
+            className="text-sm font-light text-[#1A2E22] dark:text-[#E8F0EC]"
+          >
+            Confirm Password
+          </Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            placeholder="Confirm your password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            disabled={isLoading}
+            autoComplete="new-password"
+            aria-invalid={!!errors.confirmPassword}
+            className="border-[#D1E0D8] bg-[#F0F5F2]/50 text-[#1A2E22] placeholder:text-[#5A7B6B]/50 focus:border-[#059669] focus:ring-[#059669] dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/50 dark:text-[#E8F0EC] dark:placeholder:text-[#6B8B7B]/50 dark:focus:border-[#00E5A0] dark:focus:ring-[#00E5A0]"
+          />
+          {errors.confirmPassword && (
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {errors.confirmPassword}
+            </p>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full border border-[#059669]/30 bg-[#059669]/15 text-[#059669] transition-all duration-200 hover:bg-[#059669]/25 dark:border-[#00E5A0]/30 dark:bg-[#00E5A0]/15 dark:text-[#00E5A0] dark:shadow-[0_0_20px_rgba(0,229,160,0.15)] dark:hover:bg-[#00E5A0]/25 dark:hover:shadow-[0_0_30px_rgba(0,229,160,0.25)]"
+          disabled={isLoading}
+        >
+          {isLoading ? "Creating account..." : "Create account"}
+        </Button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <p className="text-sm font-light text-[#5A7B6B] dark:text-[#6B8B7B]">
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-medium text-green-600 hover:text-green-700 hover:underline"
+            className="font-medium text-[#059669] hover:text-[#059669]/80 dark:text-[#00E5A0] dark:hover:text-[#00E5A0]/80"
           >
             Sign in
           </Link>
         </p>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }

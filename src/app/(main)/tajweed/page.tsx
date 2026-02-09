@@ -64,8 +64,8 @@ export default function TajweedPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-3 rounded-lg">
-              <BookOpen className="h-8 w-8 text-white" />
+            <div className="bg-gradient-to-br from-[#059669] to-[#047857] dark:from-[#00E5A0]/20 dark:to-[#00E5A0]/10 p-3 rounded-lg">
+              <BookOpen className="h-8 w-8 text-white dark:text-[#00E5A0]" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">Tajweed Learning</h1>

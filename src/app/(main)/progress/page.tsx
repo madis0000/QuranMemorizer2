@@ -163,8 +163,8 @@ export default function ProgressPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                  <Flame className="h-6 w-6 text-orange-500" />
+                <div className="h-12 w-12 rounded-lg bg-[#FFD700]/10 dark:bg-[#FFD700]/10 flex items-center justify-center">
+                  <Flame className="h-6 w-6 text-[#FFD700] dark:text-[#FFD700]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -179,8 +179,8 @@ export default function ProgressPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-blue-500" />
+                <div className="h-12 w-12 rounded-lg bg-[#059669]/15 dark:bg-[#00E5A0]/15 flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-[#059669] dark:text-[#00E5A0]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -197,8 +197,8 @@ export default function ProgressPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-green-500" />
+                <div className="h-12 w-12 rounded-lg bg-[#059669]/10 dark:bg-[#00E5A0]/10 flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-[#059669] dark:text-[#00E5A0]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -217,8 +217,8 @@ export default function ProgressPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                  <Trophy className="h-6 w-6 text-purple-500" />
+                <div className="h-12 w-12 rounded-lg bg-[#059669]/10 dark:bg-[#00E5A0]/10 flex items-center justify-center">
+                  <Trophy className="h-6 w-6 text-[#059669] dark:text-[#00E5A0]" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -383,8 +383,8 @@ export default function ProgressPage() {
                           key={index}
                           className="flex items-center gap-3 p-3 rounded-lg bg-accent/50"
                         >
-                          <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-                            <Trophy className="h-5 w-5 text-purple-500" />
+                          <div className="h-10 w-10 rounded-full bg-[#059669]/10 dark:bg-[#00E5A0]/10 flex items-center justify-center flex-shrink-0">
+                            <Trophy className="h-5 w-5 text-[#059669] dark:text-[#00E5A0]" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">{badge.name}</p>

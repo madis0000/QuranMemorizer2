@@ -83,59 +83,119 @@ Weekly competitive leagues inspired by Duolingo:
 - `src/components/gamification/LeagueStandings.tsx` - Weekly leaderboard UI
 - `src/components/gamification/LeaguePromotion.tsx` - Promotion/demotion modal
 
-## Priority 3: Garden of Jannah (Visual Growth Metaphor)
+## Priority 3: Surah Tree System (Garden of Jannah)
 
-The most innovative engagement feature — your memorization grows a beautiful garden:
+The most innovative engagement feature — each surah is a living tree in your garden. 114 surahs = 114 unique trees whose size reflects ayah count (Al-Kawthar = 3-flower bonsai, Al-Baqarah = 286-flower oak). The garden teaches structure, rewards consistency, and punishes neglect.
 
 ```typescript
-interface GardenState {
+interface SurahTree {
+  surahNumber: number;
+  treeType: "bonsai" | "shrub" | "sapling" | "tree" | "oak" | "baobab"; // based on ayah count
+  trunk: {
+    thickness: number; // 0-100, overall mastery strength
+    stage: "seedling" | "thin" | "sturdy" | "mighty" | "ancient";
+  };
+  branches: Array<{
+    mawduId: string; // subject/theme ID within the surah
+    name: string; // e.g. "Story of Adam", "Legal rulings"
+    nameAr: string;
+    ayahRange: [number, number]; // start-end ayah numbers
+    health: number; // 0-100, average FSRS retrievability of branch ayahs
+  }>;
   flowers: Record<
-    string,
-    {
-      // verseKey -> flower
-      type: "rose" | "jasmine" | "lily" | "tulip" | "orchid";
-      stage: "seed" | "sprout" | "bud" | "bloom" | "golden"; // mastery level
-      plantedAt: Date;
-      lastWatered: Date; // last review
-      health: number; // 0-100, decays without review
-    }
-  >;
-  trees: Record<
     number,
     {
-      // pageNumber -> tree
-      type: "palm" | "olive" | "cedar" | "fig";
-      stage: "sapling" | "young" | "mature" | "grand";
-      completedAt: Date;
+      // ayahNumber -> flower
+      stage: "seed" | "sprout" | "bud" | "bloom" | "golden";
+      memorizedAt: Date | null;
+      lastReviewed: Date | null;
+      fsrsStability: number; // from FSRS card
+      wilted: boolean; // true when FSRS overdue
     }
   >;
-  landmarks: Record<
-    number,
-    {
-      // surahNumber -> landmark
-      type: "fountain" | "pavilion" | "palace" | "gate" | "minaret";
-      unlockedAt: Date;
-    }
-  >;
+  roots: {
+    depth: number; // 0-100, aggregate FSRS stability score (retention depth)
+    spread: number; // 0-100, % of ayahs with stability > threshold
+  };
+  season: "spring" | "summer" | "autumn" | "winter"; // review streak state
+  visitors: string[]; // achievement keys — birds/butterflies visiting this tree
+}
+
+interface SimilarVerseRiver {
+  fromSurah: number;
+  toSurah: number;
+  versePairs: Array<{
+    verse1Key: string;
+    verse2Key: string;
+    similarity: number;
+  }>;
+  flowStrength: number; // visual width, based on pair count + similarity
+}
+
+interface JuzBiome {
+  juzNumber: number; // 1-30
+  biomeType:
+    | "meadow"
+    | "oasis"
+    | "forest"
+    | "mountain"
+    | "valley"
+    | "garden"
+    | "riverside";
+  completionPercent: number; // % of ayahs memorized in this juz
+  surahNumbers: number[]; // surahs in this juz
+  unlocked: boolean; // at least 1 ayah memorized
+}
+
+interface GardenState {
+  surahTrees: Record<number, SurahTree>; // surahNumber -> tree
+  rivers: SimilarVerseRiver[]; // mutashabihat connections between trees
+  biomes: Record<number, JuzBiome>; // juzNumber -> biome (30 garden sections)
   decorations: string[]; // purchased with hasanat
   hasanat: number; // currency earned through practice
   gardenLevel: number; // overall garden advancement
+  isParadiseGarden: boolean; // true when full Quran memorized
 }
 ```
 
-- Visual rendering: 2D isometric garden view (CSS/SVG, no heavy 3D)
-- Flowers wilt if not reviewed (loss aversion — powerful motivator)
-- Golden bloom = fully mastered verse (FSRS mature + 98%+ accuracy)
+### Seasonal Cycles
+
+Trees reflect review activity through seasonal appearance:
+
+- **Spring**: actively reviewing (streak maintained) — green leaves, flowers blooming
+- **Summer**: peak mastery — lush canopy, golden flowers, butterflies
+- **Autumn**: falling behind on reviews — leaves turning, flowers dimming
+- **Winter**: inactive/neglected — bare branches, wilted flowers, snow/frost
+
+### Visual Elements
+
+- **Flowers**: Each ayah = flower/fruit. Blooms when memorized, wilts when FSRS due date passes
+- **Branches**: Grouped by mawdu'at (thematic subjects) — teaches tafsir through tree structure
+- **Roots**: FSRS stability score — deep roots = strong long-term retention
+- **Trunk**: Overall mastery strength — thickens as more ayahs reach mature FSRS state
+- **Birds/Butterflies**: Achievements earned on this surah visit as animated creatures
+- **Rivers**: Similar verse connections (mutashabihat) flow between related trees
+- **30 Biomes**: Each juz = a distinct garden section/biome with unique terrain
+- **Paradise Garden**: Complete Quran memorization transforms the full garden into Jannah
+
+### Rendering
+
+- 2D isometric garden view (CSS/SVG, no heavy 3D)
+- BiomeMap: top-down overview of all 30 juz sections with tree canopy indicators
+- SurahTreeView: detailed single-tree view with branches, flowers, roots
 - Garden is shareable via screenshot / link
-- "Hasanat" shop: buy decorations (bridges, fountains, lighting effects)
-- Complete Quran = "Full Jannah" achievement with spectacular visual
+- "Hasanat" shop: buy decorations (bridges, fountains, lighting effects, river ornaments)
 
 **Files to create**:
 
-- `src/lib/gamification/garden.ts` - Garden state management, growth logic, decay
+- `src/lib/gamification/garden.ts` - Garden state management, tree growth logic, seasonal decay, river computation
+- `src/lib/gamification/surah-trees.ts` - SurahTree factory (maps ayah count to tree type, generates branch structure from mawdu'at data)
 - `src/app/api/gamification/garden/route.ts` - GET/PUT garden state
-- `src/components/gamification/GardenView.tsx` - Isometric garden renderer
-- `src/components/gamification/FlowerCard.tsx` - Individual verse flower
+- `src/components/gamification/GardenView.tsx` - Isometric garden renderer with biome sections
+- `src/components/gamification/SurahTreeView.tsx` - Detailed single-tree visualization (branches, flowers, roots)
+- `src/components/gamification/TreeGrowth.tsx` - Animated tree growth/wilt transitions
+- `src/components/gamification/BiomeMap.tsx` - Top-down 30-juz garden overview
+- `src/components/gamification/RiverOverlay.tsx` - Similar verse river connections between trees
 - `src/components/gamification/GardenShop.tsx` - Hasanat shop for decorations
 - `src/app/(main)/garden/page.tsx` - Garden page
 

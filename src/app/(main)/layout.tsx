@@ -13,6 +13,7 @@ import {
   Menu,
   Search,
   Settings,
+  Trees,
   Users,
   X,
 } from "lucide-react";
@@ -61,13 +62,13 @@ export default function MainLayout({
           sidebarOpen ? "lg:w-64" : "lg:w-20"
         )}
       >
-        <div className="flex flex-col flex-grow border-r border-border bg-card">
+        <div className="flex flex-col flex-grow border-r border-[#D1E0D8] bg-white/80 backdrop-blur-sm dark:border-[#00E5A0]/10 dark:bg-[#0F1A14]/90">
           {/* Logo */}
-          <div className="flex h-16 items-center justify-between px-4 border-b border-border">
+          <div className="flex h-16 items-center justify-between px-4 border-b border-[#D1E0D8] dark:border-[#00E5A0]/10">
             {sidebarOpen && (
               <Link href="/" className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                  <BookOpen className="h-5 w-5 text-primary-foreground" />
+                <div className="h-8 w-8 rounded-lg bg-[#059669] dark:bg-[#00E5A0]/20 dark:shadow-[0_0_15px_rgba(0,229,160,0.3)] flex items-center justify-center">
+                  <Trees className="h-5 w-5 text-primary-foreground dark:text-[#00E5A0]" />
                 </div>
                 <span className="font-semibold text-lg">QuranMemorizer</span>
               </Link>
@@ -93,8 +94,8 @@ export default function MainLayout({
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      ? "bg-[#059669]/10 text-[#059669] dark:bg-[#00E5A0]/10 dark:text-[#00E5A0]"
+                      : "text-muted-foreground hover:bg-[#059669]/5 dark:hover:bg-[#00E5A0]/5 hover:text-accent-foreground"
                   )}
                 >
                   <item.icon className="h-5 w-5 shrink-0" />
@@ -106,9 +107,9 @@ export default function MainLayout({
 
           {/* Streak Display */}
           {sidebarOpen && (
-            <div className="p-4 border-t border-border">
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-accent/50">
-                <Flame className="h-5 w-5 text-orange-500" />
+            <div className="p-4 border-t border-[#D1E0D8] dark:border-[#00E5A0]/10">
+              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#059669]/5 border border-[#D1E0D8] dark:bg-[#00E5A0]/5 dark:border-[#00E5A0]/10">
+                <Flame className="h-5 w-5 text-[#FFD700]" />
                 <div>
                   <p className="text-sm font-medium">
                     {streak.currentStreak} {t("streak.day_streak")}
@@ -124,11 +125,11 @@ export default function MainLayout({
       </aside>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 border-b border-border bg-card">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 border-b border-[#D1E0D8] bg-white/80 backdrop-blur-sm dark:border-[#00E5A0]/10 dark:bg-[#0F1A14]/90">
         <div className="flex h-full items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary-foreground" />
+            <div className="h-8 w-8 rounded-lg bg-[#059669] dark:bg-[#00E5A0]/20 dark:shadow-[0_0_15px_rgba(0,229,160,0.3)] flex items-center justify-center">
+              <Trees className="h-5 w-5 text-primary-foreground dark:text-[#00E5A0]" />
             </div>
             <span className="font-semibold">QuranMemorizer</span>
           </Link>
@@ -153,7 +154,7 @@ export default function MainLayout({
             className="absolute inset-0 bg-black/50"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <nav className="relative bg-card border-r border-border w-64 h-full py-4 px-3 space-y-1">
+          <nav className="relative bg-white/95 backdrop-blur-md border-r border-[#D1E0D8] dark:bg-[#0F1A14]/95 dark:border-[#00E5A0]/10 w-64 h-full py-4 px-3 space-y-1">
             {navigation.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
@@ -164,8 +165,8 @@ export default function MainLayout({
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      ? "bg-[#059669]/10 text-[#059669] dark:bg-[#00E5A0]/10 dark:text-[#00E5A0]"
+                      : "text-muted-foreground hover:bg-[#059669]/5 dark:hover:bg-[#00E5A0]/5 hover:text-accent-foreground"
                   )}
                 >
                   <item.icon className="h-5 w-5" />

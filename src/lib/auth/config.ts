@@ -8,6 +8,7 @@ import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/db";
 
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
   pages: {
     signIn: "/login",
     error: "/login",

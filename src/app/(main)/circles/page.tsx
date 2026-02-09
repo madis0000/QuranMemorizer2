@@ -85,7 +85,7 @@ export default function CirclesPage() {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-36 rounded-xl border animate-pulse bg-muted"
+                className="h-36 rounded-xl border animate-pulse bg-[#059669]/5 dark:bg-[#00E5A0]/5"
               />
             ))}
           </div>
@@ -101,7 +101,7 @@ export default function CirclesPage() {
           </div>
         ) : (
           <div className="py-16 text-center">
-            <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+            <Users className="h-12 w-12 mx-auto mb-4 text-[#059669]/30 dark:text-[#00E5A0]/30" />
             {activeTab === "mine" ? (
               <>
                 <h3 className="text-lg font-medium mb-1">No circles yet</h3>

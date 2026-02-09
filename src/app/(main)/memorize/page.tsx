@@ -422,7 +422,7 @@ export default function MemorizePage() {
                 {/* Comparison Stats */}
                 {comparisonResult && (
                   <div className="flex justify-center gap-4 text-sm">
-                    <span className="text-green-600 dark:text-green-400">
+                    <span className="text-[#059669] dark:text-[#00E5A0]">
                       {comparisonResult.correctWords} correct
                     </span>
                     <span className="text-red-600 dark:text-red-400">

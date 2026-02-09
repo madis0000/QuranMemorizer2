@@ -226,14 +226,14 @@ export default function AchievementsPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="bg-gradient-to-br from-amber-500 to-orange-500 p-3 rounded-lg">
-            <Trophy className="w-8 h-8 text-white" />
+          <div className="bg-gradient-to-br from-[#059669] to-[#047857] dark:from-[#00E5A0]/20 dark:to-[#00E5A0]/10 p-3 rounded-lg">
+            <Trophy className="w-8 h-8 text-white dark:text-[#00E5A0]" />
           </div>
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-4xl font-bold text-[#1A2E22] dark:text-[#E8F0EC]">
               Achievements
             </h1>
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-[#5A7B6B] dark:text-[#6B8B7B]">
               Track your Quran learning milestones
             </p>
           </div>
@@ -255,14 +255,14 @@ export default function AchievementsPage() {
         {/* Total Achievements */}
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            <div className="bg-purple-100 dark:bg-purple-900 p-3 rounded-lg">
-              <Trophy className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <div className="bg-[#059669]/10 dark:bg-[#00E5A0]/10 p-3 rounded-lg">
+              <Trophy className="w-6 h-6 text-[#059669] dark:text-[#00E5A0]" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              <div className="text-2xl font-bold text-[#1A2E22] dark:text-[#E8F0EC]">
                 {earnedCount} / {totalCount}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="text-sm text-[#5A7B6B] dark:text-[#6B8B7B]">
                 Achievements Unlocked
               </div>
             </div>
@@ -272,14 +272,14 @@ export default function AchievementsPage() {
         {/* Total XP */}
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            <div className="bg-amber-100 dark:bg-amber-900 p-3 rounded-lg">
-              <Star className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+            <div className="bg-[#FFD700]/10 dark:bg-[#FFD700]/10 p-3 rounded-lg">
+              <Star className="w-6 h-6 text-[#FFD700] dark:text-[#FFD700]" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              <div className="text-2xl font-bold text-[#1A2E22] dark:text-[#E8F0EC]">
                 {totalXPFromAchievements.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="text-sm text-[#5A7B6B] dark:text-[#6B8B7B]">
                 XP from Achievements
               </div>
             </div>
@@ -289,14 +289,14 @@ export default function AchievementsPage() {
         {/* Completion Rate */}
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
-              <Target className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <div className="bg-[#059669]/10 dark:bg-[#00E5A0]/10 p-3 rounded-lg">
+              <Target className="w-6 h-6 text-[#059669] dark:text-[#00E5A0]" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              <div className="text-2xl font-bold text-[#1A2E22] dark:text-[#E8F0EC]">
                 {Math.round((earnedCount / totalCount) * 100)}%
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="text-sm text-[#5A7B6B] dark:text-[#6B8B7B]">
                 Completion Rate
               </div>
             </div>
@@ -308,12 +308,12 @@ export default function AchievementsPage() {
       <AchievementGrid achievements={MOCK_ACHIEVEMENTS} />
 
       {/* Bottom Info */}
-      <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+      <div className="mt-8 p-4 bg-[#059669]/5 dark:bg-[#00E5A0]/5 border border-[#059669]/20 dark:border-[#00E5A0]/20 rounded-lg">
         <div className="flex items-start gap-3">
-          <Award className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-blue-800 dark:text-blue-200">
+          <Award className="w-5 h-5 text-[#059669] dark:text-[#00E5A0] mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-[#1A2E22] dark:text-[#E8F0EC]">
             <p className="font-semibold mb-1">About Achievements</p>
-            <p className="text-blue-700 dark:text-blue-300">
+            <p className="text-[#5A7B6B] dark:text-[#6B8B7B]">
               Earn achievements by completing various milestones in your Quran
               learning journey. Each achievement rewards you with XP and helps
               you level up. Some achievements are secret - discover them by

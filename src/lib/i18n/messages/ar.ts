@@ -120,6 +120,107 @@ const ar: Record<string, string> = {
   "onboarding.summary": "أنت جاهز!",
   "onboarding.summary_desc":
     "تم حفظ تفضيلاتك. يمكنك تغييرها في أي وقت من الإعدادات.",
+
+  // Navigation (new)
+  "nav.review": "المراجعة",
+  "nav.garden": "الحديقة",
+  "nav.challenges": "التحديات",
+  "nav.similar": "آيات متشابهة",
+
+  // Review / SRS
+  "review.title": "المراجعة المتباعدة",
+  "review.subtitle": "راجع آياتك المحفوظة بجدولة FSRS",
+  "review.surah": "سورة",
+  "review.loading_verse": "جاري تحميل الآية...",
+  "review.stability": "الثبات",
+  "review.difficulty": "الصعوبة",
+  "review.retention": "الاحتفاظ",
+  "review.again": "مرة أخرى",
+  "review.hard": "صعب",
+  "review.good": "جيد",
+  "review.easy": "سهل",
+  "review.all_done": "تم الانتهاء!",
+  "review.no_cards_due": "لا توجد بطاقات مستحقة للمراجعة الآن. عد لاحقاً!",
+  "review.session_complete": "اكتملت الجلسة!",
+  "review.cards_reviewed": "البطاقات المراجعة",
+  "review.review_more": "مراجعة المزيد",
+  "review.reviewed": "تمت مراجعتها",
+  "review.remaining": "متبقية",
+  "review.all": "الكل",
+  "review.due_today": "مستحقة اليوم",
+  "review.total_cards": "إجمالي البطاقات",
+  "review.avg_accuracy": "متوسط الدقة",
+  "review.mature": "ناضجة",
+  "review.distribution": "توزيع البطاقات",
+  "review.new": "جديدة",
+  "review.learning": "قيد التعلم",
+  "review.young": "حديثة",
+  "review.mature_label": "ناضجة",
+  "review.relearning": "إعادة تعلم",
+
+  // Blessed Time
+  "blessed.active": "وقت مبارك",
+  "blessed.fajr": "وقت الفجر",
+  "blessed.last_third": "الثلث الأخير من الليل",
+
+  // Garden
+  "garden.title": "حديقة الجنة",
+  "garden.subtitle": "شاهد حفظك يزهر في حديقة جميلة",
+  "garden.hasanat": "حسنات",
+  "garden.level": "مستوى الحديقة",
+  "garden.trees": "أشجار السور",
+  "garden.biomes": "البيئات",
+  "garden.shop": "متجر الحديقة",
+  "garden.empty": "ابدأ الحفظ لتنمو حديقتك",
+  "garden.paradise": "تم الوصول لحديقة الفردوس!",
+
+  // Challenges
+  "challenges.title": "التحديات",
+  "challenges.subtitle": "اختبر مهاراتك بالتحديات اليومية والشخصية",
+  "challenges.daily": "التحدي اليومي",
+  "challenges.speed": "السرعة",
+  "challenges.accuracy": "الدقة",
+  "challenges.endurance": "التحمل",
+  "challenges.random_verse": "آية عشوائية",
+  "challenges.history": "السجل",
+  "challenges.start": "ابدأ التحدي",
+  "challenges.time_left": "الوقت المتبقي",
+  "challenges.best_score": "أفضل نتيجة",
+  "challenges.no_challenges": "لا توجد تحديات متاحة",
+  "challenges.completed": "اكتمل التحدي!",
+
+  // Similar Verses
+  "similar.title": "الآيات المتشابهة",
+  "similar.subtitle": "أتقن المتشابهات — أزواج الآيات المتشابهة",
+  "similar.browse": "تصفح الأزواج",
+  "similar.practice": "تدريبات",
+  "similar.weak_pairs": "نقاط ضعفي",
+  "similar.similarity": "التشابه",
+  "similar.continue_drill": "أكمل الآية...",
+  "similar.which_surah": "من أي سورة؟",
+  "similar.spot_difference": "اكتشف الفرق",
+  "similar.correct": "صحيح!",
+  "similar.incorrect": "حاول مرة أخرى",
+  "similar.no_pairs": "لم يتم العثور على آيات متشابهة",
+
+  // Teacher Dashboard
+  "teacher.dashboard": "لوحة المعلم",
+  "teacher.students": "الطلاب",
+  "teacher.assignments": "الواجبات",
+  "teacher.create_assignment": "إنشاء واجب",
+  "teacher.last_active": "آخر نشاط",
+  "teacher.weak_areas": "نقاط الضعف",
+
+  // PWA
+  "pwa.install": "تثبيت حافظ القرآن",
+  "pwa.install_desc": "ثبّت التطبيق للوصول بدون إنترنت وتجربة أفضل",
+  "pwa.offline": "أنت غير متصل",
+  "pwa.offline_desc": "بعض الميزات قد تكون محدودة",
+
+  // Notifications
+  "notifications.enable": "تفعيل الإشعارات",
+  "notifications.enable_desc": "احصل على تذكيرات للمراجعة والحفاظ على السلسلة",
+  "notifications.permission_denied": "تم رفض إذن الإشعارات",
 };
 
 export default ar;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useUserStore } from "@/stores";
@@ -9,11 +10,15 @@ import {
   BookOpen,
   Brain,
   Flame,
+  Flower2,
+  GitCompareArrows,
   Headphones,
   Menu,
+  RotateCcw,
   Search,
   Settings,
   Star,
+  Swords,
   Trees,
   Users,
   X,
@@ -24,19 +29,51 @@ import { getXPProgress } from "@/lib/gamification/xp";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/use-translation";
 import { useGamificationStore } from "@/stores/gamificationStore";
-import { MiniPlayer } from "@/components/audio/MiniPlayer";
-import { AchievementPopup } from "@/components/gamification/AchievementPopup";
-import { XPAwardToast } from "@/components/gamification/XPAwardToast";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { VoiceSearchFAB } from "@/components/voice/VoiceSearchFAB";
+
+// Dynamic imports for heavy components — reduces initial bundle
+const MiniPlayer = dynamic(
+  () => import("@/components/audio/MiniPlayer").then((m) => m.MiniPlayer),
+  { ssr: false }
+);
+const AchievementPopup = dynamic(
+  () =>
+    import("@/components/gamification/AchievementPopup").then(
+      (m) => m.AchievementPopup
+    ),
+  { ssr: false }
+);
+const BlessedTimeIndicator = dynamic(
+  () =>
+    import("@/components/gamification/BlessedTimeIndicator").then(
+      (m) => m.BlessedTimeIndicator
+    ),
+  { ssr: false }
+);
+const XPAwardToast = dynamic(
+  () =>
+    import("@/components/gamification/XPAwardToast").then(
+      (m) => m.XPAwardToast
+    ),
+  { ssr: false }
+);
+const VoiceSearchFAB = dynamic(
+  () =>
+    import("@/components/voice/VoiceSearchFAB").then((m) => m.VoiceSearchFAB),
+  { ssr: false }
+);
 
 const navigation = [
   { nameKey: "nav.quran", href: "/quran", icon: BookOpen },
   { nameKey: "nav.memorize", href: "/memorize", icon: Brain },
+  { nameKey: "nav.review", href: "/review", icon: RotateCcw },
   { nameKey: "nav.listen", href: "/listen", icon: Headphones },
   { nameKey: "nav.search", href: "/search", icon: Search },
   { nameKey: "nav.progress", href: "/progress", icon: BarChart3 },
+  { nameKey: "nav.garden", href: "/garden", icon: Flower2 },
+  { nameKey: "nav.challenges", href: "/challenges", icon: Swords },
+  { nameKey: "nav.similar", href: "/similar-verses", icon: GitCompareArrows },
   { nameKey: "nav.circles", href: "/circles", icon: Users },
   { nameKey: "nav.settings", href: "/settings", icon: Settings },
 ];
@@ -227,6 +264,7 @@ export default function MainLayout({
           <ErrorBoundary>{children}</ErrorBoundary>
         </div>
         <MiniPlayer />
+        <BlessedTimeIndicator />
       </main>
 
       {/* Voice Search FAB - floats above all content */}

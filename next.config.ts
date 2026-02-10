@@ -91,7 +91,12 @@ const nextConfig: NextConfig = {
   // Experimental features
   experimental: {
     // Enable optimized package imports
-    optimizePackageImports: ["lucide-react", "date-fns", "framer-motion"],
+    optimizePackageImports: [
+      "lucide-react",
+      "date-fns",
+      "framer-motion",
+      "ts-fsrs",
+    ],
   },
 };
 

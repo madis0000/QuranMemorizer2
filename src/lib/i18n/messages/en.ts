@@ -120,6 +120,110 @@ const en: Record<string, string> = {
   "onboarding.summary": "You are all set!",
   "onboarding.summary_desc":
     "Your preferences have been saved. You can change them anytime in Settings.",
+
+  // Navigation (new)
+  "nav.review": "Review",
+  "nav.garden": "Garden",
+  "nav.challenges": "Challenges",
+  "nav.similar": "Similar Verses",
+
+  // Review / SRS
+  "review.title": "Spaced Review",
+  "review.subtitle": "Review your memorized verses with FSRS scheduling",
+  "review.surah": "Surah",
+  "review.loading_verse": "Loading verse...",
+  "review.stability": "Stability",
+  "review.difficulty": "Difficulty",
+  "review.retention": "Retention",
+  "review.again": "Again",
+  "review.hard": "Hard",
+  "review.good": "Good",
+  "review.easy": "Easy",
+  "review.all_done": "All Done!",
+  "review.no_cards_due":
+    "No cards are due for review right now. Come back later!",
+  "review.session_complete": "Session Complete!",
+  "review.cards_reviewed": "Cards reviewed",
+  "review.review_more": "Review More",
+  "review.reviewed": "reviewed",
+  "review.remaining": "remaining",
+  "review.all": "All",
+  "review.due_today": "Due Today",
+  "review.total_cards": "Total Cards",
+  "review.avg_accuracy": "Avg Accuracy",
+  "review.mature": "Mature",
+  "review.distribution": "Card Distribution",
+  "review.new": "New",
+  "review.learning": "Learning",
+  "review.young": "Young",
+  "review.mature_label": "Mature",
+  "review.relearning": "Relearning",
+
+  // Blessed Time
+  "blessed.active": "Blessed Time Active",
+  "blessed.fajr": "Fajr Time",
+  "blessed.last_third": "Last Third of Night",
+
+  // Garden
+  "garden.title": "Garden of Jannah",
+  "garden.subtitle": "Watch your memorization bloom into a beautiful garden",
+  "garden.hasanat": "Hasanat",
+  "garden.level": "Garden Level",
+  "garden.trees": "Surah Trees",
+  "garden.biomes": "Biomes",
+  "garden.shop": "Garden Shop",
+  "garden.empty": "Start memorizing to grow your garden",
+  "garden.paradise": "Paradise Garden Achieved!",
+
+  // Challenges
+  "challenges.title": "Challenges",
+  "challenges.subtitle": "Test your skills with daily and personal challenges",
+  "challenges.daily": "Daily Challenge",
+  "challenges.speed": "Speed",
+  "challenges.accuracy": "Accuracy",
+  "challenges.endurance": "Endurance",
+  "challenges.random_verse": "Random Verse",
+  "challenges.history": "History",
+  "challenges.start": "Start Challenge",
+  "challenges.time_left": "Time Left",
+  "challenges.best_score": "Best Score",
+  "challenges.no_challenges": "No challenges available",
+  "challenges.completed": "Challenge Completed!",
+
+  // Similar Verses
+  "similar.title": "Similar Verses",
+  "similar.subtitle": "Master the mutashabihat — confusable verse pairs",
+  "similar.browse": "Browse Pairs",
+  "similar.practice": "Practice Drills",
+  "similar.weak_pairs": "My Weak Pairs",
+  "similar.similarity": "Similarity",
+  "similar.continue_drill": "Continue the verse...",
+  "similar.which_surah": "Which surah?",
+  "similar.spot_difference": "Spot the difference",
+  "similar.correct": "Correct!",
+  "similar.incorrect": "Try again",
+  "similar.no_pairs": "No similar verse pairs found",
+
+  // Teacher Dashboard
+  "teacher.dashboard": "Teacher Dashboard",
+  "teacher.students": "Students",
+  "teacher.assignments": "Assignments",
+  "teacher.create_assignment": "Create Assignment",
+  "teacher.last_active": "Last Active",
+  "teacher.weak_areas": "Weak Areas",
+
+  // PWA
+  "pwa.install": "Install QuranMemorizer",
+  "pwa.install_desc":
+    "Install the app for offline access and a better experience",
+  "pwa.offline": "You're offline",
+  "pwa.offline_desc": "Some features may be limited",
+
+  // Notifications
+  "notifications.enable": "Enable Notifications",
+  "notifications.enable_desc":
+    "Get reminders for reviews and streak maintenance",
+  "notifications.permission_denied": "Notification permission denied",
 };
 
 export default en;

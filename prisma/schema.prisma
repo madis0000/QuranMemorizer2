@@ -88,6 +88,9 @@ model User {
   xpTransactions  XPTransaction[]
   leagueStandings LeagueStanding[]
   circleMembers   CircleMember[]
+  challengeAttempts ChallengeAttempt[]
+  gardenState     GardenState?
+  pushSubscriptions PushSubscription[]
 
   @@index([email])
 }
@@ -476,4 +479,81 @@ model CircleActivity {
   circle HifzCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
 
   @@index([circleId, createdAt])
+}
+
+// ===== Similar Verse Pairs =====
+
+model SimilarVersePair {
+  id         String @id @default(cuid())
+  verse1Key  String // "2:35"
+  verse2Key  String // "7:19"
+  similarity Float  // 0.0-1.0
+  diffWords  Json   // words that differ
+  category   String // "near_identical", "similar_opening", "similar_ending", "thematic"
+
+  @@unique([verse1Key, verse2Key])
+  @@index([verse1Key])
+  @@index([verse2Key])
+}
+
+// ===== Challenges =====
+
+model Challenge {
+  id          String   @id @default(cuid())
+  type        String   // "speed", "accuracy", "endurance", "random_verse", "daily"
+  title       String
+  description String?
+  config      Json     // { surahNumber?, timeLimit?, accuracyThreshold?, verseCount? }
+  xpReward    Int      @default(50)
+  isDaily     Boolean  @default(false)
+  activeDate  DateTime? @db.Date
+  createdAt   DateTime @default(now())
+
+  attempts    ChallengeAttempt[]
+}
+
+model ChallengeAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  challengeId String
+  score       Int
+  accuracy    Float?
+  duration    Int       // seconds
+  completed   Boolean   @default(false)
+  stars       Int       @default(0) // 1-3 stars
+  createdAt   DateTime  @default(now())
+
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, challengeId])
+  @@index([userId, createdAt])
+}
+
+// ===== Garden State =====
+
+model GardenState {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  state       Json     // full GardenState object (surahTrees, rivers, biomes, decorations)
+  hasanat     Int      @default(0)
+  gardenLevel Int      @default(0)
+  isParadise  Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ===== Push Subscriptions =====
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  keys      Json     // { p256dh, auth }
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

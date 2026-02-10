@@ -120,6 +120,107 @@ const ur: Record<string, string> = {
   "onboarding.summary": "آپ تیار ہیں!",
   "onboarding.summary_desc":
     "آپ کی ترجیحات محفوظ ہو گئی ہیں۔ آپ انہیں کسی بھی وقت ترتیبات سے تبدیل کر سکتے ہیں۔",
+
+  // Navigation (new)
+  "nav.review": "مراجعہ",
+  "nav.garden": "باغ",
+  "nav.challenges": "چیلنجز",
+  "nav.similar": "مشابہ آیات",
+
+  // Review / SRS
+  "review.title": "وقفے وقفے سے مراجعہ",
+  "review.subtitle": "FSRS شیڈولنگ کے ساتھ اپنی حفظ شدہ آیات کا مراجعہ کریں",
+  "review.surah": "سورۃ",
+  "review.loading_verse": "آیت لوڈ ہو رہی ہے...",
+  "review.stability": "استحکام",
+  "review.difficulty": "مشکل",
+  "review.retention": "یادداشت",
+  "review.again": "دوبارہ",
+  "review.hard": "مشکل",
+  "review.good": "اچھا",
+  "review.easy": "آسان",
+  "review.all_done": "مکمل!",
+  "review.no_cards_due": "ابھی کوئی کارڈ مراجعہ کے لیے نہیں ہے۔ بعد میں آئیں!",
+  "review.session_complete": "سیشن مکمل!",
+  "review.cards_reviewed": "مراجعہ شدہ کارڈز",
+  "review.review_more": "مزید مراجعہ",
+  "review.reviewed": "مراجعہ شدہ",
+  "review.remaining": "باقی",
+  "review.all": "سب",
+  "review.due_today": "آج واجب",
+  "review.total_cards": "کل کارڈز",
+  "review.avg_accuracy": "اوسط درستگی",
+  "review.mature": "پختہ",
+  "review.distribution": "کارڈز کی تقسیم",
+  "review.new": "نیا",
+  "review.learning": "سیکھ رہا ہے",
+  "review.young": "نوجوان",
+  "review.mature_label": "پختہ",
+  "review.relearning": "دوبارہ سیکھنا",
+
+  // Blessed Time
+  "blessed.active": "مبارک وقت",
+  "blessed.fajr": "فجر کا وقت",
+  "blessed.last_third": "رات کا آخری تہائی",
+
+  // Garden
+  "garden.title": "جنت کا باغ",
+  "garden.subtitle": "اپنے حفظ کو ایک خوبصورت باغ میں کھلتا دیکھیں",
+  "garden.hasanat": "حسنات",
+  "garden.level": "باغ کی سطح",
+  "garden.trees": "سورۃ کے درخت",
+  "garden.biomes": "ماحول",
+  "garden.shop": "باغ کی دکان",
+  "garden.empty": "اپنا باغ اگانے کے لیے حفظ شروع کریں",
+  "garden.paradise": "جنت کا باغ حاصل!",
+
+  // Challenges
+  "challenges.title": "چیلنجز",
+  "challenges.subtitle": "روزانہ اور ذاتی چیلنجز کے ساتھ اپنی مہارت آزمائیں",
+  "challenges.daily": "روزانہ چیلنج",
+  "challenges.speed": "رفتار",
+  "challenges.accuracy": "درستگی",
+  "challenges.endurance": "برداشت",
+  "challenges.random_verse": "بے ترتیب آیت",
+  "challenges.history": "تاریخ",
+  "challenges.start": "چیلنج شروع کریں",
+  "challenges.time_left": "باقی وقت",
+  "challenges.best_score": "بہترین سکور",
+  "challenges.no_challenges": "کوئی چیلنج دستیاب نہیں",
+  "challenges.completed": "چیلنج مکمل!",
+
+  // Similar Verses
+  "similar.title": "مشابہ آیات",
+  "similar.subtitle": "متشابہات میں مہارت حاصل کریں — مشابہ آیات کے جوڑے",
+  "similar.browse": "جوڑے دیکھیں",
+  "similar.practice": "مشق",
+  "similar.weak_pairs": "میری کمزوریاں",
+  "similar.similarity": "مشابہت",
+  "similar.continue_drill": "آیت جاری رکھیں...",
+  "similar.which_surah": "کس سورۃ سے؟",
+  "similar.spot_difference": "فرق تلاش کریں",
+  "similar.correct": "درست!",
+  "similar.incorrect": "دوبارہ کوشش کریں",
+  "similar.no_pairs": "مشابہ آیات نہیں ملیں",
+
+  // Teacher Dashboard
+  "teacher.dashboard": "استاد ڈیش بورڈ",
+  "teacher.students": "طلباء",
+  "teacher.assignments": "اسائنمنٹس",
+  "teacher.create_assignment": "اسائنمنٹ بنائیں",
+  "teacher.last_active": "آخری سرگرمی",
+  "teacher.weak_areas": "کمزور علاقے",
+
+  // PWA
+  "pwa.install": "قرآن حافظ انسٹال کریں",
+  "pwa.install_desc": "آف لائن رسائی اور بہتر تجربے کے لیے ایپ انسٹال کریں",
+  "pwa.offline": "آپ آف لائن ہیں",
+  "pwa.offline_desc": "کچھ خصوصیات محدود ہو سکتی ہیں",
+
+  // Notifications
+  "notifications.enable": "اطلاعات فعال کریں",
+  "notifications.enable_desc": "مراجعہ اور سلسلہ کی یاد دہانی حاصل کریں",
+  "notifications.permission_denied": "اطلاع کی اجازت مسترد",
 };
 
 export default ur;

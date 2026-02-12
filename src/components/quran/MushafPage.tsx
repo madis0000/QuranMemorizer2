@@ -29,6 +29,9 @@ export interface MushafPageProps {
   currentWordKey?: string;
   mistakeWordKeys?: Set<string>;
   hiddenWordKeys?: Set<string>;
+  hintWordKeys?: Map<string, string>;
+  currentAyahWordKeys?: Set<string>;
+  mistakeDetailsMap?: Map<string, { recitedWord?: string }>;
   onWordClick?: (word: MushafWordType) => void;
   onWordHover?: (word: MushafWordType | null) => void;
   className?: string;
@@ -47,12 +50,16 @@ export const MushafPage = memo(function MushafPage({
   currentWordKey,
   mistakeWordKeys,
   hiddenWordKeys,
+  hintWordKeys,
+  currentAyahWordKeys,
+  mistakeDetailsMap,
   onWordClick,
   onWordHover,
   className,
 }: MushafPageProps) {
   const editionConfig = MUSHAF_EDITIONS[edition];
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const isSpecialPage = page.pageNumber === 1 || page.pageNumber === 2;
 
   // Determine QPC version based on edition
   const qpcVersion: QPCVersion = useMemo(() => {
@@ -145,15 +152,81 @@ export const MushafPage = memo(function MushafPage({
 
   const aspectRatio = editionConfig?.aspectRatio || 1.618;
 
+  if (isSpecialPage) {
+    return (
+      <div
+        className={cn(
+          "mushaf-page special-page",
+          "relative",
+          "flex flex-col",
+          "bg-[#FFFEFB] dark:bg-[#263E34]",
+          "border border-transparent dark:border-[#2A4038] rounded-lg",
+          "dark:shadow-[0_1px_6px_rgba(0,0,0,0.3)]",
+          "text-foreground",
+          "overflow-hidden",
+          fontClass,
+          !fontsLoaded && "opacity-0",
+          fontsLoaded && "opacity-100 transition-opacity duration-200",
+          className
+        )}
+        dir="rtl"
+        lang="ar"
+        style={{
+          fontFamily: pageFontFamily,
+          aspectRatio: `1 / ${aspectRatio}`,
+          width: `min(100%, calc((100vh - 12rem) / ${aspectRatio}))`,
+        }}
+      >
+        {/* Corner ornaments */}
+        <CornerOrnament position="top-right" />
+        <CornerOrnament position="top-left" />
+        <CornerOrnament position="bottom-right" />
+        <CornerOrnament position="bottom-left" />
+
+        {/* Special page content with extra padding */}
+        <div className="flex-1 flex flex-col px-[8%] py-[6%] gap-3 relative z-[2]">
+          {page.lines.map((line, index) => (
+            <MushafLine
+              key={`${page.pageNumber}-${line.lineNumber}-${index}`}
+              line={line}
+              pageNumber={page.pageNumber}
+              qpcVersion={qpcVersion}
+              showTajweed={showTajweed}
+              highlightedWords={highlightedWords}
+              currentWordKey={currentWordKey}
+              mistakeWordKeys={mistakeWordKeys}
+              hiddenWordKeys={hiddenWordKeys}
+              hintWordKeys={hintWordKeys}
+              currentAyahWordKeys={currentAyahWordKeys}
+              mistakeDetailsMap={mistakeDetailsMap}
+              onWordClick={onWordClick}
+              onWordHover={onWordHover}
+            />
+          ))}
+        </div>
+
+        {/* Centered page number inside frame */}
+        {showPageNumber && (
+          <div className="flex items-center justify-center py-3 relative z-[2]">
+            <span className="page-number text-sm text-muted-foreground font-amiri">
+              {toArabicNumber(page.pageNumber)}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
         "mushaf-page",
         "relative",
         "flex flex-col",
-        "bg-background",
-        "border border-border rounded-lg",
-        "shadow-sm",
+        "bg-[#FFFEFB] dark:bg-[#263E34]",
+        "border border-[#E5DDD0]/50 dark:border-[#2A4038] rounded-lg",
+        "shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.3)]",
+        "text-foreground",
         "overflow-hidden",
         fontClass,
         !fontsLoaded && "opacity-0",
@@ -191,6 +264,8 @@ export const MushafPage = memo(function MushafPage({
             currentWordKey={currentWordKey}
             mistakeWordKeys={mistakeWordKeys}
             hiddenWordKeys={hiddenWordKeys}
+            currentAyahWordKeys={currentAyahWordKeys}
+            mistakeDetailsMap={mistakeDetailsMap}
             onWordClick={onWordClick}
             onWordHover={onWordHover}
             className="flex-1"
@@ -207,6 +282,85 @@ export const MushafPage = memo(function MushafPage({
 });
 
 /**
+ * Islamic geometric corner ornament for special pages 1-2
+ * Rub el Hizb inspired design, rotated per corner position
+ */
+function CornerOrnament({
+  position,
+}: {
+  position: "top-right" | "top-left" | "bottom-right" | "bottom-left";
+}) {
+  const positionClasses: Record<typeof position, string> = {
+    "top-right": "top-[8px] right-[8px]",
+    "top-left": "top-[8px] left-[8px]",
+    "bottom-right": "bottom-[8px] right-[8px]",
+    "bottom-left": "bottom-[8px] left-[8px]",
+  };
+
+  const rotations: Record<typeof position, number> = {
+    "top-right": 0,
+    "top-left": 90,
+    "bottom-right": 270,
+    "bottom-left": 180,
+  };
+
+  return (
+    <div
+      className={cn(
+        "absolute z-[3] pointer-events-none corner-ornament",
+        positionClasses[position]
+      )}
+    >
+      <svg
+        viewBox="0 0 60 60"
+        fill="none"
+        className="w-[50px] h-[50px] text-primary/50"
+        style={{ transform: `rotate(${rotations[position]}deg)` }}
+      >
+        {/* Concentric arcs from corner */}
+        <path
+          d="M2 2 Q2 30, 30 30"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          fill="none"
+        />
+        <path
+          d="M2 2 Q2 20, 20 20"
+          stroke="currentColor"
+          strokeWidth="0.8"
+          fill="none"
+        />
+        <path
+          d="M2 2 Q2 42, 42 42"
+          stroke="currentColor"
+          strokeWidth="0.6"
+          fill="none"
+          opacity="0.6"
+        />
+        {/* Small medallion at corner */}
+        <circle cx="5" cy="5" r="3" fill="currentColor" opacity="0.25" />
+        <circle cx="5" cy="5" r="1.5" fill="currentColor" opacity="0.4" />
+        {/* Leaf/floral along edges */}
+        <path
+          d="M2 14 Q6 12, 8 8 Q10 12, 14 14"
+          stroke="currentColor"
+          strokeWidth="0.6"
+          fill="currentColor"
+          fillOpacity="0.08"
+        />
+        <path
+          d="M14 2 Q12 6, 8 8 Q12 10, 14 14"
+          stroke="currentColor"
+          strokeWidth="0.6"
+          fill="currentColor"
+          fillOpacity="0.08"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/**
  * Page header showing Juz and Surah information
  */
 interface PageHeaderProps {
@@ -221,7 +375,7 @@ function PageHeader({ juz, hizb }: PageHeaderProps) {
   const quarterSymbols = ["۞", "۩", "۝", "۞"];
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 text-xs text-muted-foreground">
+    <div className="flex items-center justify-between px-4 py-2 border-b border-[#E5DDD0]/30 dark:border-[#2A4038] text-xs text-muted-foreground">
       <div className="flex items-center gap-2">
         <span className="juz-marker bg-primary/10 text-primary px-2 py-0.5 rounded">
           الجزء {toArabicNumber(juz)}
@@ -247,7 +401,7 @@ interface PageFooterProps {
 
 function PageFooter({ pageNumber }: PageFooterProps) {
   return (
-    <div className="flex items-center justify-center py-2 border-t border-border/50">
+    <div className="flex items-center justify-center py-2 border-t border-[#E5DDD0]/30 dark:border-[#2A4038]">
       <span className="page-number text-sm text-muted-foreground font-amiri">
         {toArabicNumber(pageNumber)}
       </span>
@@ -267,14 +421,14 @@ export function MushafPageSkeleton({
 }) {
   return (
     <div
-      className="mushaf-page bg-background border border-border rounded-lg shadow-sm overflow-hidden animate-pulse"
+      className="mushaf-page bg-[#FFFEFB] dark:bg-[#263E34] border border-[#E5DDD0]/50 dark:border-[#2A4038] rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.3)] overflow-hidden animate-pulse"
       style={{
         aspectRatio: `1 / ${aspectRatio}`,
         width: `min(100%, calc((100vh - 12rem) / ${aspectRatio}))`,
       }}
     >
       {/* Header skeleton */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border/50">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[#E5DDD0]/30 dark:border-[#2A4038]">
         <div className="h-4 w-16 bg-muted rounded" />
         <div className="h-4 w-12 bg-muted rounded" />
       </div>
@@ -295,7 +449,7 @@ export function MushafPageSkeleton({
       </div>
 
       {/* Footer skeleton */}
-      <div className="flex items-center justify-center py-2 border-t border-border/50">
+      <div className="flex items-center justify-center py-2 border-t border-[#E5DDD0]/30 dark:border-[#2A4038]">
         <div className="h-4 w-8 bg-muted rounded" />
       </div>
     </div>

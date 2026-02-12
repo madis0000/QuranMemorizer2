@@ -9,6 +9,11 @@ import {
 
 import type { QPCVersion } from "@/lib/fonts/qpc-fonts";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface MushafWordProps {
   word: MushafWordType;
@@ -19,6 +24,9 @@ export interface MushafWordProps {
   isCurrent?: boolean;
   isMistake?: boolean;
   isHidden?: boolean;
+  isCurrentAyah?: boolean;
+  hintText?: string; // e.g. "ب..." for first_letter mode
+  mistakeDetail?: { recitedWord?: string };
   onClick?: (word: MushafWordType) => void;
   onHover?: (word: MushafWordType | null) => void;
   fontSize?: number;
@@ -38,6 +46,9 @@ export const MushafWord = memo(function MushafWord({
   isCurrent = false,
   isMistake = false,
   isHidden = false,
+  isCurrentAyah = false,
+  hintText,
+  mistakeDetail,
   onClick,
   onHover,
   fontSize,
@@ -78,9 +89,85 @@ export const MushafWord = memo(function MushafWord({
   const renderText = glyphCode || displayText;
 
   // Render ayah end marker differently
-  // Note: The ayah marker is embedded in the word text from QPC data
+  // Note: QPC ayah-end glyphs contain TWO characters: word-glyph + number-glyph.
+  // When hidden, show a blank placeholder for the word part + the visible number.
   // IMPORTANT: QPC glyph codes MUST use dangerouslySetInnerHTML per Quran Foundation docs
   if (word.isAyahEnd) {
+    const parts = renderText.split(" ");
+    const numberGlyph = parts.length > 1 ? parts[parts.length - 1] : renderText;
+    const wordGlyph = parts.length > 1 ? parts.slice(0, -1).join(" ") : null;
+
+    if (isHidden && wordGlyph) {
+      // Render: [blank placeholder for word] + [visible ayah number]
+      return (
+        <span
+          className={cn(
+            "mushaf-word ayah-end select-none inline-flex items-center",
+            className
+          )}
+          style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
+        >
+          <span
+            className={cn(
+              "cursor-pointer bg-muted/50 rounded px-1 hover:bg-muted transition-colors",
+              isCurrentAyah && "ring-1 ring-primary/30 bg-primary/5"
+            )}
+            onClick={handleClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            role="button"
+            tabIndex={0}
+            aria-label={
+              hintText ? `Hint: ${hintText}` : "Hidden word - tap to reveal"
+            }
+          >
+            {hintText ? (
+              <span className="text-muted-foreground text-[0.6em] font-arabic">
+                {hintText}
+              </span>
+            ) : (
+              <span
+                className="invisible"
+                dangerouslySetInnerHTML={{ __html: wordGlyph }}
+              />
+            )}
+          </span>
+          <span
+            aria-label={`Ayah ${word.ayahNumber}`}
+            dangerouslySetInnerHTML={{ __html: numberGlyph }}
+            suppressHydrationWarning
+          />
+        </span>
+      );
+    }
+    // Non-hidden ayah-end: show word+number with optional mistake/highlight/current styling
+    if (wordGlyph && (isMistake || isHighlighted || isCurrent)) {
+      return (
+        <span
+          className={cn(
+            "mushaf-word ayah-end select-none inline-flex items-center",
+            className
+          )}
+          style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
+        >
+          <span
+            className={cn(
+              "rounded px-0.5 transition-colors duration-150",
+              isHighlighted && "bg-primary/20",
+              isCurrent && "bg-primary/30",
+              isMistake && "bg-destructive/20 text-destructive"
+            )}
+            dangerouslySetInnerHTML={{ __html: wordGlyph }}
+            suppressHydrationWarning
+          />
+          <span
+            aria-label={`Ayah ${word.ayahNumber}`}
+            dangerouslySetInnerHTML={{ __html: numberGlyph }}
+            suppressHydrationWarning
+          />
+        </span>
+      );
+    }
     return (
       <span
         className={cn("mushaf-word ayah-end select-none", className)}
@@ -100,6 +187,7 @@ export const MushafWord = memo(function MushafWord({
           "mushaf-word cursor-pointer",
           "bg-muted/50 rounded px-1",
           "hover:bg-muted transition-colors",
+          isCurrentAyah && "ring-1 ring-primary/30 bg-primary/5",
           className
         )}
         style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
@@ -108,9 +196,17 @@ export const MushafWord = memo(function MushafWord({
         onMouseLeave={handleMouseLeave}
         role="button"
         tabIndex={0}
-        aria-label="Hidden word - tap to reveal"
+        aria-label={
+          hintText ? `Hint: ${hintText}` : "Hidden word - tap to reveal"
+        }
       >
-        <span className="invisible">{displayText}</span>
+        {hintText ? (
+          <span className="text-muted-foreground text-[0.6em] font-arabic">
+            {hintText}
+          </span>
+        ) : (
+          <span className="invisible">{displayText}</span>
+        )}
       </span>
     );
   }
@@ -118,7 +214,7 @@ export const MushafWord = memo(function MushafWord({
   // IMPORTANT: QPC glyph codes MUST use dangerouslySetInnerHTML per Quran Foundation docs
   // Regular text can use normal React children
   if (glyphCode) {
-    return (
+    const glyphSpan = (
       <span
         className={cn(
           "mushaf-word",
@@ -141,14 +237,34 @@ export const MushafWord = memo(function MushafWord({
         data-surah={word.surahNumber}
         data-ayah={word.ayahNumber}
         data-position={word.wordPosition}
+        data-current={isCurrent || undefined}
         dangerouslySetInnerHTML={{ __html: glyphCode }}
         suppressHydrationWarning
       />
     );
+    if (isMistake && mistakeDetail?.recitedWord) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{glyphSpan}</TooltipTrigger>
+          <TooltipContent
+            className="bg-popover text-popover-foreground border shadow-md"
+            sideOffset={4}
+          >
+            <div className="text-xs space-y-0.5 font-sans" dir="rtl">
+              <div className="text-red-500">
+                You said: {mistakeDetail.recitedWord}
+              </div>
+              <div className="text-emerald-500">Correct: {word.text}</div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+    return glyphSpan;
   }
 
   // Fallback to regular text rendering (no glyph code available)
-  return (
+  const fallbackSpan = (
     <span
       className={cn(
         "mushaf-word",
@@ -171,6 +287,7 @@ export const MushafWord = memo(function MushafWord({
       data-surah={word.surahNumber}
       data-ayah={word.ayahNumber}
       data-position={word.wordPosition}
+      data-current={isCurrent || undefined}
     >
       {showTajweed && word.tajweedRules && word.tajweedRules.length > 0 ? (
         <TajweedText text={displayText} rules={word.tajweedRules} />
@@ -179,6 +296,25 @@ export const MushafWord = memo(function MushafWord({
       )}
     </span>
   );
+  if (isMistake && mistakeDetail?.recitedWord) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{fallbackSpan}</TooltipTrigger>
+        <TooltipContent
+          className="bg-popover text-popover-foreground border shadow-md"
+          sideOffset={4}
+        >
+          <div className="text-xs space-y-0.5 font-sans" dir="rtl">
+            <div className="text-red-500">
+              You said: {mistakeDetail.recitedWord}
+            </div>
+            <div className="text-emerald-500">Correct: {word.text}</div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  return fallbackSpan;
 });
 
 /**

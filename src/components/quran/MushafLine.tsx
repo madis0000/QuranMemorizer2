@@ -20,6 +20,9 @@ export interface MushafLineProps {
   currentWordKey?: string;
   mistakeWordKeys?: Set<string>;
   hiddenWordKeys?: Set<string>;
+  hintWordKeys?: Map<string, string>;
+  currentAyahWordKeys?: Set<string>;
+  mistakeDetailsMap?: Map<string, { recitedWord?: string }>;
   onWordClick?: (word: MushafWordType) => void;
   onWordHover?: (word: MushafWordType | null) => void;
   fontSize?: number;
@@ -38,6 +41,9 @@ export const MushafLine = memo(function MushafLine({
   currentWordKey,
   mistakeWordKeys,
   hiddenWordKeys,
+  hintWordKeys,
+  currentAyahWordKeys,
+  mistakeDetailsMap,
   onWordClick,
   onWordHover,
   fontSize,
@@ -52,7 +58,12 @@ export const MushafLine = memo(function MushafLine({
 
     case "basmallah":
       return (
-        <BasmallahLine line={line} fontSize={fontSize} className={className} />
+        <BasmallahLine
+          line={line}
+          qpcVersion={qpcVersion}
+          fontSize={fontSize}
+          className={className}
+        />
       );
 
     case "empty":
@@ -70,6 +81,9 @@ export const MushafLine = memo(function MushafLine({
           currentWordKey={currentWordKey}
           mistakeWordKeys={mistakeWordKeys}
           hiddenWordKeys={hiddenWordKeys}
+          hintWordKeys={hintWordKeys}
+          currentAyahWordKeys={currentAyahWordKeys}
+          mistakeDetailsMap={mistakeDetailsMap}
           onWordClick={onWordClick}
           onWordHover={onWordHover}
           fontSize={fontSize}
@@ -166,15 +180,16 @@ function SurahHeaderOrnament({ side }: { side: "left" | "right" }) {
  */
 interface BasmallahLineProps {
   line: MushafLineType;
+  qpcVersion?: QPCVersion;
   fontSize?: number;
   className?: string;
 }
 
 function BasmallahLine({ line, fontSize, className }: BasmallahLineProps) {
   const word = line.words[0];
-  // Use QPC glyph code if available, otherwise fall back to text
-  const glyphCode = word?.qpcV2 || word?.qpcV1;
-  const fallbackText = word?.text || "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ";
+  // Always use plain Arabic text for basmallah — QPC glyph codes for basmallah
+  // use page-specific font mappings that don't render correctly across all pages.
+  const text = word?.text || "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ";
 
   return (
     <div
@@ -184,16 +199,7 @@ function BasmallahLine({ line, fontSize, className }: BasmallahLineProps) {
         className
       )}
     >
-      {/* IMPORTANT: QPC glyph codes MUST use dangerouslySetInnerHTML per Quran Foundation docs */}
-      {glyphCode ? (
-        <span
-          className="text-foreground"
-          dangerouslySetInnerHTML={{ __html: glyphCode }}
-          suppressHydrationWarning
-        />
-      ) : (
-        <span className="text-foreground">{fallbackText}</span>
-      )}
+      <span className="text-foreground font-amiri text-lg">{text}</span>
     </div>
   );
 }
@@ -210,6 +216,9 @@ interface AyahLineProps {
   currentWordKey?: string;
   mistakeWordKeys?: Set<string>;
   hiddenWordKeys?: Set<string>;
+  hintWordKeys?: Map<string, string>;
+  currentAyahWordKeys?: Set<string>;
+  mistakeDetailsMap?: Map<string, { recitedWord?: string }>;
   onWordClick?: (word: MushafWordType) => void;
   onWordHover?: (word: MushafWordType | null) => void;
   fontSize?: number;
@@ -225,6 +234,9 @@ function AyahLine({
   currentWordKey,
   mistakeWordKeys,
   hiddenWordKeys,
+  hintWordKeys,
+  currentAyahWordKeys,
+  mistakeDetailsMap,
   onWordClick,
   onWordHover,
   fontSize,
@@ -251,6 +263,13 @@ function AyahLine({
           isCurrent={currentWordKey === word.wordKey}
           isMistake={mistakeWordKeys?.has(word.wordKey)}
           isHidden={hiddenWordKeys?.has(word.wordKey)}
+          isCurrentAyah={currentAyahWordKeys?.has(word.wordKey)}
+          hintText={
+            hiddenWordKeys?.has(word.wordKey)
+              ? hintWordKeys?.get(word.wordKey)
+              : undefined
+          }
+          mistakeDetail={mistakeDetailsMap?.get(word.wordKey)}
           onClick={onWordClick}
           onHover={onWordHover}
         />

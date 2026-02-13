@@ -398,3 +398,182 @@ export function useBadges() {
     staleTime: 10 * 60 * 1000,
   });
 }
+
+// ===== Progress Dashboard Hooks =====
+
+export function useMemoryMap() {
+  return useQuery({
+    queryKey: [...progressKeys.all, "memory-map"],
+    queryFn: async () => {
+      const res = await fetch("/api/progress/memory-map");
+      if (!res.ok) throw new Error("Failed to fetch memory map");
+      return res.json() as Promise<{
+        pages: Array<{
+          page: number;
+          level:
+            | "not_started"
+            | "weak"
+            | "learning"
+            | "moderate"
+            | "strong"
+            | "mastered";
+          accuracy: number;
+          sessionsCount: number;
+          lastPracticed: string | null;
+          retention: number;
+        }>;
+      }>;
+    },
+    staleTime: 15 * 60 * 1000,
+  });
+}
+
+export function useReviewForecast() {
+  return useQuery({
+    queryKey: [...progressKeys.all, "forecast"],
+    queryFn: async () => {
+      const res = await fetch("/api/progress/forecast");
+      if (!res.ok) throw new Error("Failed to fetch forecast");
+      return res.json() as Promise<{
+        forecast: Array<{ date: string; count: number; isToday: boolean }>;
+        overdue: {
+          total: number;
+          critical: number;
+          warning: number;
+          mild: number;
+        };
+        debtRatio: number;
+        dailyAverage: number;
+        totalCards: number;
+      }>;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useDualScores() {
+  return useQuery({
+    queryKey: [...progressKeys.all, "scores"],
+    queryFn: async () => {
+      const res = await fetch("/api/progress/scores");
+      if (!res.ok) throw new Error("Failed to fetch scores");
+      return res.json() as Promise<{
+        hifdh: {
+          score: number;
+          label: string;
+          trend: "up" | "down" | "stable";
+          delta: number;
+        };
+        itqan: {
+          score: number;
+          label: string;
+          trend: "up" | "down" | "stable";
+          delta: number;
+        };
+        totalVerses: number;
+        matureVerses: number;
+      }>;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+export function useCoachInsights() {
+  return useQuery({
+    queryKey: [...progressKeys.all, "insights"],
+    queryFn: async () => {
+      const res = await fetch("/api/progress/insights");
+      if (!res.ok) throw new Error("Failed to fetch insights");
+      return res.json() as Promise<{
+        insights: Array<{
+          id: string;
+          icon: string;
+          text: string;
+          actionUrl?: string;
+          priority: number;
+        }>;
+      }>;
+    },
+    staleTime: 15 * 60 * 1000,
+  });
+}
+
+export function useEffortRetention(limit = 500) {
+  return useQuery({
+    queryKey: [...progressKeys.all, "scatter", limit],
+    queryFn: async () => {
+      const res = await fetch(`/api/progress/scatter?limit=${limit}`);
+      if (!res.ok) throw new Error("Failed to fetch scatter data");
+      return res.json() as Promise<
+        Array<{
+          verseKey: string;
+          x: number;
+          y: number;
+          surahNumber: number;
+          ayahNumber: number;
+          quadrant: "easy_win" | "well_earned" | "stubborn" | "at_risk";
+          totalReviews: number;
+        }>
+      >;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+export function useTimeline() {
+  return useQuery({
+    queryKey: [...progressKeys.all, "timeline"],
+    queryFn: async () => {
+      const res = await fetch("/api/progress/timeline");
+      if (!res.ok) throw new Error("Failed to fetch timeline");
+      return res.json() as Promise<{
+        milestones: Array<{
+          date: string;
+          type: string;
+          title: string;
+          subtitle?: string;
+          isPast: boolean;
+          confidence?: {
+            optimistic: string;
+            conservative: string;
+          };
+        }>;
+      }>;
+    },
+    staleTime: 15 * 60 * 1000,
+  });
+}
+
+export function useWrapped(period: "month" | "year" = "month") {
+  return useQuery({
+    queryKey: [...progressKeys.all, "wrapped", period],
+    queryFn: async () => {
+      const res = await fetch(`/api/progress/wrapped?period=${period}`);
+      if (!res.ok) throw new Error("Failed to fetch wrapped");
+      return res.json() as Promise<{
+        period: string;
+        periodLabel: string;
+        totalSessions: number;
+        totalMinutes: number;
+        versesMemorized: number;
+        strongestSurah: {
+          surahNumber: number;
+          name: string;
+          accuracy: number;
+          sessions: number;
+        } | null;
+        mostImproved: {
+          surahNumber: number;
+          name: string;
+          improvement: number;
+        } | null;
+        totalXP: number;
+        league: string | null;
+        longestStreak: number;
+        badgesEarned: number;
+        favoriteDay: string;
+      }>;
+    },
+    staleTime: 60 * 60 * 1000,
+  });
+}

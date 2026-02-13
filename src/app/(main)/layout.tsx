@@ -61,9 +61,13 @@ export default function MainLayout({
     : null;
 
   // Redirect to onboarding if not completed (wait for Zustand hydration first)
-  const [hydrated, setHydrated] = useState(() =>
-    useUserStore.persist.hasHydrated()
-  );
+  const [hydrated, setHydrated] = useState(() => {
+    try {
+      return useUserStore.persist?.hasHydrated?.() ?? false;
+    } catch {
+      return false;
+    }
+  });
   useEffect(() => {
     if (hydrated) return;
     // Zustand persist hydrates async — wait for it before checking isOnboarded

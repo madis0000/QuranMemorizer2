@@ -6,9 +6,11 @@
 
 /**
  * Arabic diacritical marks (tashkeel) range: U+064B -- U+065F, plus
- * U+0670 (superscript alef) which appears in Uthmani script.
+ * U+0670 (superscript alef) which appears in Uthmani script, plus
+ * Quranic annotation marks U+06D6--U+06ED (small high/low signs used
+ * in Uthmani mushaf data, e.g. ۛ small high meem, ۭ small low meem).
  */
-const DIACRITICS_RE = /[\u064B-\u065F\u0670]/g;
+const DIACRITICS_RE = /[\u064B-\u065F\u0670\u06D6-\u06ED]/g;
 
 /**
  * Arabic tatweel / kashida character (U+0640).
@@ -18,10 +20,10 @@ const TATWEEL_RE = /\u0640/g;
 // ===== Public API =====
 
 /**
- * Remove all Arabic diacritical marks (tashkeel) from `text`.
+ * Remove all Arabic diacritical marks (tashkeel) and Quranic annotations.
  *
  * Covers fathah, dammah, kasrah, shadda, sukun, tanween variants,
- * and superscript alef.
+ * superscript alef, and Quranic mushaf marks (small high/low signs).
  */
 export function removeDiacritics(text: string): string {
   return text.replace(DIACRITICS_RE, "");

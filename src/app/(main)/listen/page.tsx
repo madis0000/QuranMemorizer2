@@ -173,305 +173,305 @@ export default function ListenPage() {
   };
 
   return (
-    <div className="min-h-screen p-4 lg:p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Headphones className="h-6 w-6 text-primary" />
-            Listen to Quran
-          </h1>
-          <p className="text-muted-foreground">
+    <div className="ambient-blue max-w-6xl mx-auto px-6 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#059669]/10 dark:bg-[#00E5A0]/10 flex items-center justify-center">
+          <Headphones className="w-5 h-5 text-[#059669] dark:text-[#00E5A0]" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Listen to Quran</h1>
+          <p className="text-sm text-muted-foreground">
             Listen to beautiful recitations from renowned Qaris
           </p>
         </div>
+      </div>
 
-        {/* Surah Selection Card */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Select Surah</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {surahsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      {/* Surah Selection Card */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Select Surah</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {surahsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedSurahNumber}
+                  onChange={(e) =>
+                    setSelectedSurahNumber(Number(e.target.value))
+                  }
+                  className="flex-1 bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {surahs?.map((surah) => (
+                    <option key={surah.number} value={surah.number}>
+                      {surah.number}. {surah.englishName} - {surah.name} (
+                      {surah.numberOfAyahs} verses)
+                    </option>
+                  ))}
+                </select>
+                {selectedSurahInfo && (
+                  <DownloadButton
+                    surahNumber={selectedSurahNumber}
+                    totalAyahs={selectedSurahInfo.numberOfAyahs}
+                  />
+                )}
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <select
-                    value={selectedSurahNumber}
-                    onChange={(e) =>
-                      setSelectedSurahNumber(Number(e.target.value))
-                    }
-                    className="flex-1 bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    {surahs?.map((surah) => (
-                      <option key={surah.number} value={surah.number}>
-                        {surah.number}. {surah.englishName} - {surah.name} (
-                        {surah.numberOfAyahs} verses)
-                      </option>
-                    ))}
-                  </select>
-                  {selectedSurahInfo && (
-                    <DownloadButton
-                      surahNumber={selectedSurahNumber}
-                      totalAyahs={selectedSurahInfo.numberOfAyahs}
-                    />
-                  )}
+              {isSelectedOffline && (
+                <div className="flex items-center gap-1.5 text-xs text-[#059669] dark:text-[#00E5A0]">
+                  <Wifi className="h-3 w-3" />
+                  <span>Available Offline</span>
                 </div>
-                {isSelectedOffline && (
-                  <div className="flex items-center gap-1.5 text-xs text-[#059669] dark:text-[#00E5A0]">
-                    <Wifi className="h-3 w-3" />
-                    <span>Available Offline</span>
-                  </div>
-                )}
-              </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Now Playing Card */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>
+            {isLoading
+              ? "Loading..."
+              : isPlaying
+                ? "Now Playing"
+                : "Ready to Play"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Current Surah Info */}
+          <div className="text-center mb-6">
+            <h2 className="text-3xl arabic-text mb-2">
+              {currentSurahInfo?.name ||
+                "\u0627\u0644\u0642\u0631\u0622\u0646 \u0627\u0644\u0643\u0631\u064a\u0645"}
+            </h2>
+            <p className="text-lg">
+              {currentSurahInfo?.englishName || "Select a Surah"}{" "}
+              {currentSurahInfo?.englishNameTranslation &&
+                `(${currentSurahInfo.englishNameTranslation})`}
+            </p>
+            {currentSurahInfo && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Ayah {currentAyah} of {currentSurahInfo.numberOfAyahs}
+              </p>
             )}
-          </CardContent>
-        </Card>
+            <p className="text-sm text-muted-foreground">
+              Recited by {reciter?.name || "Unknown Reciter"}
+            </p>
+            {reciter?.style && (
+              <p className="text-xs text-muted-foreground">
+                {reciter.style} style
+              </p>
+            )}
+          </div>
 
-        {/* Now Playing Card */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>
-              {isLoading
-                ? "Loading..."
-                : isPlaying
-                  ? "Now Playing"
-                  : "Ready to Play"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Current Surah Info */}
-            <div className="text-center mb-6">
-              <h2 className="text-3xl arabic-text mb-2">
-                {currentSurahInfo?.name ||
-                  "\u0627\u0644\u0642\u0631\u0622\u0646 \u0627\u0644\u0643\u0631\u064a\u0645"}
-              </h2>
-              <p className="text-lg">
-                {currentSurahInfo?.englishName || "Select a Surah"}{" "}
-                {currentSurahInfo?.englishNameTranslation &&
-                  `(${currentSurahInfo.englishNameTranslation})`}
-              </p>
-              {currentSurahInfo && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Ayah {currentAyah} of {currentSurahInfo.numberOfAyahs}
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground">
-                Recited by {reciter?.name || "Unknown Reciter"}
-              </p>
-              {reciter?.style && (
-                <p className="text-xs text-muted-foreground">
-                  {reciter.style} style
-                </p>
-              )}
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <Slider
+              value={[duration > 0 ? (currentTime / duration) * 100 : 0]}
+              onValueChange={handleSeek}
+              max={100}
+              step={0.1}
+              className="w-full"
+              disabled={duration === 0}
+            />
+            <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
             </div>
+          </div>
 
-            {/* Progress Bar */}
-            <div className="mb-6">
+          {/* Playback Controls */}
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRepeatToggle}
+              className={repeatMode !== "none" ? "text-primary" : ""}
+              title={getRepeatLabel()}
+            >
+              <Repeat className="h-5 w-5" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={previous}
+              disabled={!isPlaying && duration === 0}
+            >
+              <SkipBack className="h-5 w-5" />
+            </Button>
+
+            <Button
+              size="lg"
+              className="rounded-full h-14 w-14"
+              onClick={handlePlay}
+              disabled={isLoading || !selectedSurahInfo}
+            >
+              {isLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="h-6 w-6" />
+              ) : (
+                <Play className="h-6 w-6 ml-1" />
+              )}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={next}
+              disabled={!isPlaying && duration === 0}
+            >
+              <SkipForward className="h-5 w-5" />
+            </Button>
+
+            <div className="w-5" />
+          </div>
+
+          {/* Volume & Speed Controls */}
+          <div className="flex items-center justify-center gap-8 mt-6">
+            <div className="flex items-center gap-2 w-32">
+              <Volume2 className="h-4 w-4 text-muted-foreground" />
               <Slider
-                value={[duration > 0 ? (currentTime / duration) * 100 : 0]}
-                onValueChange={handleSeek}
+                value={[volume * 100]}
+                onValueChange={(value) => setVolume(value[0] / 100)}
                 max={100}
-                step={0.1}
-                className="w-full"
-                disabled={duration === 0}
+                step={1}
               />
-              <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
             </div>
 
-            {/* Playback Controls */}
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleRepeatToggle}
-                className={repeatMode !== "none" ? "text-primary" : ""}
-                title={getRepeatLabel()}
-              >
-                <Repeat className="h-5 w-5" />
-              </Button>
+            <select
+              value={playbackSpeed}
+              onChange={(e) => setSpeed(parseFloat(e.target.value))}
+              className="bg-transparent border border-border rounded px-2 py-1 text-sm"
+            >
+              <option value="0.5">0.5x</option>
+              <option value="0.75">0.75x</option>
+              <option value="1">1x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+            </select>
+          </div>
+        </CardContent>
+      </Card>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={previous}
-                disabled={!isPlaying && duration === 0}
-              >
-                <SkipBack className="h-5 w-5" />
-              </Button>
-
-              <Button
-                size="lg"
-                className="rounded-full h-14 w-14"
-                onClick={handlePlay}
-                disabled={isLoading || !selectedSurahInfo}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : isPlaying ? (
-                  <Pause className="h-6 w-6" />
-                ) : (
-                  <Play className="h-6 w-6 ml-1" />
-                )}
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={next}
-                disabled={!isPlaying && duration === 0}
-              >
-                <SkipForward className="h-5 w-5" />
-              </Button>
-
-              <div className="w-5" />
+      {/* Ayah-by-Ayah Display */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Ayah-by-Ayah</span>
+            {selectedSurahInfo && (
+              <span className="text-sm font-normal text-muted-foreground">
+                {selectedSurahInfo.englishName} -{" "}
+                {selectedSurahInfo.numberOfAyahs} verses
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ayahsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : ayahs && ayahs.length > 0 ? (
+            <div
+              ref={scrollContainerRef}
+              className="space-y-2 max-h-[60vh] overflow-y-auto pr-1"
+            >
+              {ayahs.map((ayah) => {
+                const isCurrentAyah =
+                  currentSurah === selectedSurahNumber &&
+                  currentAyah === ayah.numberInSurah;
+                const isCurrentlyPlaying = isCurrentAyah && isPlaying;
 
-            {/* Volume & Speed Controls */}
-            <div className="flex items-center justify-center gap-8 mt-6">
-              <div className="flex items-center gap-2 w-32">
-                <Volume2 className="h-4 w-4 text-muted-foreground" />
-                <Slider
-                  value={[volume * 100]}
-                  onValueChange={(value) => setVolume(value[0] / 100)}
-                  max={100}
-                  step={1}
-                />
-              </div>
-
-              <select
-                value={playbackSpeed}
-                onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                className="bg-transparent border border-border rounded px-2 py-1 text-sm"
-              >
-                <option value="0.5">0.5x</option>
-                <option value="0.75">0.75x</option>
-                <option value="1">1x</option>
-                <option value="1.25">1.25x</option>
-                <option value="1.5">1.5x</option>
-              </select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Ayah-by-Ayah Display */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Ayah-by-Ayah</span>
-              {selectedSurahInfo && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  {selectedSurahInfo.englishName} -{" "}
-                  {selectedSurahInfo.numberOfAyahs} verses
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {ayahsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : ayahs && ayahs.length > 0 ? (
-              <div
-                ref={scrollContainerRef}
-                className="space-y-2 max-h-[60vh] overflow-y-auto pr-1"
-              >
-                {ayahs.map((ayah) => {
-                  const isCurrentAyah =
-                    currentSurah === selectedSurahNumber &&
-                    currentAyah === ayah.numberInSurah;
-                  const isCurrentlyPlaying = isCurrentAyah && isPlaying;
-
-                  return (
+                return (
+                  <div
+                    key={ayah.numberInSurah}
+                    ref={(el) => setAyahRef(ayah.numberInSurah, el)}
+                    className={cn(
+                      "group flex items-start gap-3 p-3 rounded-lg border transition-colors",
+                      isCurrentlyPlaying
+                        ? "border-primary bg-primary/5"
+                        : isCurrentAyah
+                          ? "border-primary/50 bg-primary/[0.02]"
+                          : "border-transparent hover:bg-accent/50"
+                    )}
+                  >
+                    {/* Ayah number badge */}
                     <div
-                      key={ayah.numberInSurah}
-                      ref={(el) => setAyahRef(ayah.numberInSurah, el)}
                       className={cn(
-                        "group flex items-start gap-3 p-3 rounded-lg border transition-colors",
+                        "flex items-center justify-center h-8 w-8 rounded-full text-xs font-medium shrink-0 mt-1",
                         isCurrentlyPlaying
-                          ? "border-primary bg-primary/5"
-                          : isCurrentAyah
-                            ? "border-primary/50 bg-primary/[0.02]"
-                            : "border-transparent hover:bg-accent/50"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
                       )}
                     >
-                      {/* Ayah number badge */}
-                      <div
-                        className={cn(
-                          "flex items-center justify-center h-8 w-8 rounded-full text-xs font-medium shrink-0 mt-1",
-                          isCurrentlyPlaying
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {ayah.numberInSurah}
-                      </div>
-
-                      {/* Arabic text */}
-                      <p
-                        className={cn(
-                          "flex-1 text-xl leading-loose arabic-text",
-                          isCurrentlyPlaying && "text-primary"
-                        )}
-                        dir="rtl"
-                      >
-                        {ayah.text}
-                      </p>
-
-                      {/* Play controls */}
-                      <div className="flex flex-col items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                        <AyahPlayButton
-                          surahNumber={selectedSurahNumber}
-                          ayahNumber={ayah.numberInSurah}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handlePlayFromAyah(ayah.numberInSurah)}
-                          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
-                          title={`Play from ayah ${ayah.numberInSurah} onwards`}
-                        >
-                          <PlayCircle className="h-3 w-3" />
-                          <span className="hidden sm:inline">From here</span>
-                        </button>
-                      </div>
+                      {ayah.numberInSurah}
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">
-                Select a surah to see its ayahs
-              </p>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Reciter Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Select Reciter</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2">
-              {POPULAR_RECITERS.map((reciterOption) => (
-                <ReciterCard
-                  key={reciterOption.id}
-                  reciter={reciterOption}
-                  isSelected={currentReciter === reciterOption.id}
-                  onSelect={setCurrentReciter}
-                />
-              ))}
+                    {/* Arabic text */}
+                    <p
+                      className={cn(
+                        "flex-1 text-xl leading-loose arabic-text",
+                        isCurrentlyPlaying && "text-primary"
+                      )}
+                      dir="rtl"
+                    >
+                      {ayah.text}
+                    </p>
+
+                    {/* Play controls */}
+                    <div className="flex flex-col items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                      <AyahPlayButton
+                        surahNumber={selectedSurahNumber}
+                        ayahNumber={ayah.numberInSurah}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handlePlayFromAyah(ayah.numberInSurah)}
+                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors whitespace-nowrap"
+                        title={`Play from ayah ${ayah.numberInSurah} onwards`}
+                      >
+                        <PlayCircle className="h-3 w-3" />
+                        <span className="hidden sm:inline">From here</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              Select a surah to see its ayahs
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Reciter Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Select Reciter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2">
+            {POPULAR_RECITERS.map((reciterOption) => (
+              <ReciterCard
+                key={reciterOption.id}
+                reciter={reciterOption}
+                isSelected={currentReciter === reciterOption.id}
+                onSelect={setCurrentReciter}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

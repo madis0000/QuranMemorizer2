@@ -7,6 +7,14 @@ const en: Record<string, string> = {
   "nav.progress": "Progress",
   "nav.settings": "Settings",
   "nav.circles": "Circles",
+  "nav.review": "Review",
+  "nav.garden": "Garden",
+  "nav.challenges": "Challenges",
+  "nav.similar": "Similar Verses",
+  "nav.achievements": "Achievements",
+  "nav.tajweed": "Tajweed",
+  "nav.sessions": "Sessions",
+  "nav.more": "More",
 
   // Auth
   "auth.login": "Sign In",
@@ -120,12 +128,6 @@ const en: Record<string, string> = {
   "onboarding.summary": "You are all set!",
   "onboarding.summary_desc":
     "Your preferences have been saved. You can change them anytime in Settings.",
-
-  // Navigation (new)
-  "nav.review": "Review",
-  "nav.garden": "Garden",
-  "nav.challenges": "Challenges",
-  "nav.similar": "Similar Verses",
 
   // Review / SRS
   "review.title": "Spaced Review",

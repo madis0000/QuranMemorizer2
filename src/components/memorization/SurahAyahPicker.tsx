@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSurahs } from "@/hooks";
 import type { Surah } from "@/types/quran";
 
+import { LayoutModeToggle } from "@/components/memorization/LayoutModeToggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -131,6 +132,11 @@ export function SurahAyahPicker({
             {currentSurah.englishName} has {maxAyahs} ayahs
           </p>
         )}
+
+        {/* Layout mode toggle */}
+        <div className="flex justify-center">
+          <LayoutModeToggle />
+        </div>
 
         <Button onClick={handleConfirm} className="w-full">
           Start Memorizing

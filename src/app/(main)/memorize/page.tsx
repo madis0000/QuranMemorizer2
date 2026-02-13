@@ -1,17 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useCreateSession } from "@/hooks";
+import { useRouter } from "next/navigation";
+import {
+  useActiveSessions,
+  useCompleteSession,
+  useCreateSession,
+  useDiscardSession as useDiscardSessionMutation,
+  usePauseSession,
+  useResumeSession as useResumeSessionMutation,
+} from "@/hooks";
 import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Clock,
   Flame,
   Mic,
   MicOff,
+  PlayCircle,
   RefreshCw,
   RotateCcw,
+  Trash2,
   Zap,
 } from "lucide-react";
 
@@ -32,6 +43,7 @@ import { useVoiceRecognition } from "@/hooks/use-voice-recognition";
 import { useQuranStore } from "@/stores/quranStore";
 import {
   useSessionStore,
+  type DBSessionSnapshot,
   type SessionSummary as SessionSummaryType,
   type StartSessionConfig,
 } from "@/stores/sessionStore";
@@ -656,11 +668,19 @@ function VoiceSection({
 // ---------- main page ----------
 
 export default function MemorizePage() {
+  const router = useRouter();
   const session = useSessionStore();
   const memorizeMode = useQuranStore((s) => s.memorizeMode);
   const setMemorizeMode = useQuranStore((s) => s.setMemorizeMode);
   const createSession = useCreateSession();
   const { processSession } = usePostSessionGamification();
+
+  // DB session lifecycle hooks
+  const { data: activeSessionsData } = useActiveSessions();
+  const pauseSessionMutation = usePauseSession();
+  const resumeSessionMutation = useResumeSessionMutation();
+  const completeSessionMutation = useCompleteSession();
+  const discardSessionMutation = useDiscardSessionMutation();
 
   const [sessionSummary, setSessionSummary] =
     useState<SessionSummaryType | null>(null);
@@ -668,6 +688,93 @@ export default function MemorizePage() {
     useState<ComparisonResult | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [overlayCollapsed, setOverlayCollapsed] = useState(false);
+
+  // --- Session persistence: hydration + recovery ---
+  const [hydrationChecked, setHydrationChecked] = useState(false);
+  const [sessionRecovered, setSessionRecovered] = useState(false);
+  // DB recovery: tracks if we found a resumable session from the DB
+  const [dbRecoverySession, setDbRecoverySession] = useState<{
+    id: string;
+    surahNumber: number;
+    startAyah: number;
+    endAyah: number;
+    pageNumber: number | null;
+    mode: string;
+    targetType: string | null;
+    duration: number;
+    stateSnapshot: DBSessionSnapshot | null;
+    pausedAt: string | null;
+    createdAt: string;
+    status: string;
+  } | null>(null);
+
+  const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours
+  const PAUSED_STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+  // Check for DB recovery sessions
+  const dbRecoveryChecked = useRef(false);
+  useEffect(() => {
+    if (dbRecoveryChecked.current) return;
+    if (!activeSessionsData?.sessions) return;
+    const dbSessions = activeSessionsData.sessions;
+    if (dbSessions.length === 0) return;
+
+    dbRecoveryChecked.current = true;
+
+    // Find first non-stale session
+    const now = Date.now();
+    const resumable = dbSessions.find((s) => {
+      const createdAt = new Date(s.createdAt).getTime();
+      const threshold =
+        s.status === "PAUSED" ? PAUSED_STALE_MS : STALE_THRESHOLD_MS;
+      return now - createdAt < threshold;
+    });
+
+    if (resumable && !session.isActive) {
+      setDbRecoverySession(resumable as typeof dbRecoverySession);
+    }
+  }, [activeSessionsData, session.isActive]);
+
+  useEffect(() => {
+    // Wait for Zustand persist to finish rehydrating from localStorage
+    const unsub = useSessionStore.persist.onFinishHydration(() => {
+      const state = useSessionStore.getState();
+      if (state.isActive && state.startTime) {
+        const elapsed = Date.now() - state.startTime;
+        if (elapsed > STALE_THRESHOLD_MS) {
+          // Session is too old — auto-discard
+          state.discardSession();
+        } else {
+          setSessionRecovered(true);
+        }
+      }
+      setHydrationChecked(true);
+    });
+    // If hydration already happened (e.g. fast localStorage), check immediately
+    if (useSessionStore.persist.hasHydrated()) {
+      const state = useSessionStore.getState();
+      if (state.isActive && state.startTime) {
+        const elapsed = Date.now() - state.startTime;
+        if (elapsed > STALE_THRESHOLD_MS) {
+          state.discardSession();
+        } else {
+          setSessionRecovered(true);
+        }
+      }
+      setHydrationChecked(true);
+    }
+    return unsub;
+  }, []);
+
+  // --- beforeunload warning for active sessions ---
+  useEffect(() => {
+    if (!session.isActive) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [session.isActive]);
 
   // For mushaf mode: the original text + word keys/texts come from the page data (bridge module).
   const mushafOriginalTextRef = useRef("");
@@ -723,9 +830,32 @@ export default function MemorizePage() {
       session.startSession(config);
       setSessionSummary(null);
       setComparisonResult(null);
+      setSessionRecovered(false);
+      setDbRecoverySession(null);
       resetVoice();
+
+      // Create ACTIVE session in DB
+      createSession.mutate(
+        {
+          surahNumber: config.surahNumber,
+          startAyah: config.startAyah,
+          endAyah: config.endAyah,
+          pageNumber: config.pageNumber,
+          mode: "MEMORIZE",
+          duration: 0,
+          wordsRecited: 0,
+          mistakeCount: 0,
+          status: "ACTIVE",
+          targetType: config.targetType,
+        } as Parameters<typeof createSession.mutate>[0],
+        {
+          onSuccess: (data: { id: string }) => {
+            useSessionStore.getState().setActiveSessionId(data.id);
+          },
+        }
+      );
     },
-    [session, resetVoice]
+    [session, resetVoice, createSession]
   );
 
   const handleEndSession = useCallback(async () => {
@@ -733,43 +863,116 @@ export default function MemorizePage() {
       await compareAndScore();
     }
 
+    const activeSessionId = useSessionStore.getState().activeSessionId;
     const summary = session.endSession();
     if (summary) {
       setSessionSummary(summary);
 
-      createSession.mutate(
-        {
-          surahNumber: summary.surahNumber,
-          startAyah: summary.startAyah,
-          endAyah: summary.endAyah,
-          mode: "MEMORIZE",
-          duration: summary.duration,
+      const mistakeData = summary.mistakes.map((m) => ({
+        surahNumber: m.surahNumber,
+        ayahNumber: m.ayahNumber,
+        wordIndex: m.wordIndex,
+        type: m.type.toUpperCase(),
+        recitedText: m.recitedText ?? undefined,
+        correctText: m.correctText,
+        severity: m.severity.toUpperCase(),
+      }));
+
+      const onGamification = () => {
+        processSession({
+          versesRecited: summary.totalVerses,
           accuracy: summary.accuracy,
-          wordsRecited: summary.wordsRecited,
-          mistakeCount: summary.mistakes.length,
-          mistakes: summary.mistakes.map((m) => ({
-            surahNumber: m.surahNumber,
-            ayahNumber: m.ayahNumber,
-            wordIndex: m.wordIndex,
-            type: m.type.toUpperCase(),
-            recitedText: m.recitedText ?? undefined,
-            correctText: m.correctText,
-            severity: m.severity.toUpperCase(),
-          })),
-        },
-        {
-          onSuccess: () => {
-            processSession({
-              versesRecited: summary.totalVerses,
-              accuracy: summary.accuracy,
-              duration: summary.duration,
-              surahNumber: summary.surahNumber,
-            });
+          duration: summary.duration,
+          surahNumber: summary.surahNumber,
+        });
+      };
+
+      if (activeSessionId) {
+        // Complete via PATCH (DB-tracked session)
+        completeSessionMutation.mutate(
+          {
+            sessionId: activeSessionId,
+            duration: summary.duration,
+            accuracy: summary.accuracy,
+            wordsRecited: summary.wordsRecited,
+            mistakeCount: summary.mistakes.length,
+            mistakes: mistakeData,
           },
-        }
-      );
+          { onSuccess: onGamification }
+        );
+      } else {
+        // Fallback: direct POST (offline/unauthenticated)
+        createSession.mutate(
+          {
+            surahNumber: summary.surahNumber,
+            startAyah: summary.startAyah,
+            endAyah: summary.endAyah,
+            mode: "MEMORIZE",
+            duration: summary.duration,
+            accuracy: summary.accuracy,
+            wordsRecited: summary.wordsRecited,
+            mistakeCount: summary.mistakes.length,
+            mistakes: mistakeData,
+          },
+          { onSuccess: onGamification }
+        );
+      }
     }
-  }, [finalText, compareAndScore, session, createSession, processSession]);
+  }, [
+    finalText,
+    compareAndScore,
+    session,
+    createSession,
+    completeSessionMutation,
+    processSession,
+  ]);
+
+  // Save & Exit handler — pause to DB
+  const handleSaveAndExit = useCallback(() => {
+    const state = useSessionStore.getState();
+    const activeSessionId = state.activeSessionId;
+    if (!activeSessionId) return;
+
+    const duration = state.startTime
+      ? Math.floor((Date.now() - state.startTime) / 1000)
+      : 0;
+
+    const stateSnapshot: DBSessionSnapshot = {
+      currentAyah: state.currentAyah,
+      currentVerseIndex: state.currentVerseIndex,
+      currentPageNumber: state.currentPageNumber,
+      mushafCurrentAyahKey: state.mushafCurrentAyahKey,
+      revealedWordKeys: Array.from(state.revealedWordKeys),
+      revealedWords: state.revealedWords,
+      wordsRecited: state.wordsRecited,
+      correctWords: state.correctWords,
+      mistakes: state.mistakes,
+      verseList: state.verseList,
+      revealMode: state.revealMode,
+      hideMode: state.hideMode,
+      hideDifficulty: state.hideDifficulty,
+      mistakeSensitivity: state.mistakeSensitivity,
+      isHidden: state.isHidden,
+      targetId: state.targetId,
+      juzNumber: state.juzNumber,
+      hizbNumber: state.hizbNumber,
+      subjectId: state.subjectId,
+    };
+
+    pauseSessionMutation.mutate(
+      {
+        sessionId: activeSessionId,
+        stateSnapshot: stateSnapshot as unknown as Record<string, unknown>,
+        duration,
+      },
+      {
+        onSuccess: () => {
+          state.discardSession();
+          router.push("/sessions");
+        },
+      }
+    );
+  }, [pauseSessionMutation, router]);
 
   // Navigation handlers — cross-surah aware
   const isCrossSurah = session.verseList.length > 0;
@@ -1085,6 +1288,251 @@ export default function MemorizePage() {
     setComparisonResult(null);
   }, [resetVoice]);
 
+  // --- Recovery dialog helpers ---
+  const handleResumeSession = useCallback(() => {
+    // Sync memorizeMode with the recovered session's targetType
+    setMemorizeMode(session.targetType);
+    setSessionRecovered(false);
+    setDbRecoverySession(null);
+  }, [session.targetType, setMemorizeMode]);
+
+  const handleDiscardSession = useCallback(() => {
+    const activeId = useSessionStore.getState().activeSessionId;
+    if (activeId) {
+      discardSessionMutation.mutate(activeId);
+    }
+    session.discardSession();
+    setSessionRecovered(false);
+    setDbRecoverySession(null);
+  }, [session, discardSessionMutation]);
+
+  // Resume from DB recovery session
+  const handleResumeFromDB = useCallback(() => {
+    if (!dbRecoverySession) return;
+    resumeSessionMutation.mutate(dbRecoverySession.id, {
+      onSuccess: () => {
+        session.loadFromSnapshot({
+          id: dbRecoverySession.id,
+          surahNumber: dbRecoverySession.surahNumber,
+          startAyah: dbRecoverySession.startAyah,
+          endAyah: dbRecoverySession.endAyah,
+          pageNumber: dbRecoverySession.pageNumber,
+          mode: dbRecoverySession.mode,
+          targetType: dbRecoverySession.targetType,
+          duration: dbRecoverySession.duration,
+          stateSnapshot: dbRecoverySession.stateSnapshot,
+        });
+        const targetType = dbRecoverySession.targetType;
+        if (targetType) {
+          setMemorizeMode(targetType as Parameters<typeof setMemorizeMode>[0]);
+        }
+        setDbRecoverySession(null);
+      },
+    });
+  }, [dbRecoverySession, resumeSessionMutation, session, setMemorizeMode]);
+
+  // Discard DB recovery session
+  const handleDiscardFromDB = useCallback(() => {
+    if (!dbRecoverySession) return;
+    discardSessionMutation.mutate(dbRecoverySession.id);
+    setDbRecoverySession(null);
+  }, [dbRecoverySession, discardSessionMutation]);
+
+  const formatTimeAgo = (ts: number) => {
+    const mins = Math.floor((timestamp() - ts) / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    return `${hrs}h ${mins % 60}m ago`;
+  };
+
+  const modeLabels: Record<string, string> = {
+    mushaf: "Mushaf",
+    ayah: "Ayah",
+    surah: "Surah",
+    juz: "Juz",
+    hizb: "Hizb",
+    subject: "Subject",
+  };
+
+  // Show DB recovery dialog (takes priority over localStorage recovery)
+  if (dbRecoverySession && !session.isActive) {
+    const dbCreatedAt = new Date(dbRecoverySession.createdAt).getTime();
+    return (
+      <div className="flex flex-col -mt-14 lg:-mt-16 h-[calc(100dvh-5rem)] lg:h-[calc(100dvh-4.125rem)] bg-[#F8FAF9] dark:bg-[#121E18]">
+        <MemorizeToolbar
+          memorizeMode={memorizeMode}
+          onModeChange={setMemorizeMode}
+          isActive={false}
+          onStartSession={handleStartSession}
+          onEndSession={handleEndSession}
+        />
+        <div className="flex-1 min-h-0 flex items-center justify-center bg-[#F2F0ED] dark:bg-[#0A1210] p-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PlayCircle className="h-5 w-5 text-[#059669] dark:text-[#00E5A0]" />
+                Resume Saved Session?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                You have a saved session that can be resumed.
+              </p>
+
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Mode</span>
+                  <span className="font-medium">
+                    {modeLabels[dbRecoverySession.targetType ?? "ayah"] ??
+                      dbRecoverySession.targetType}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Range</span>
+                  <span className="font-medium">
+                    {dbRecoverySession.surahNumber}:
+                    {dbRecoverySession.startAyah}–{dbRecoverySession.endAyah}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status</span>
+                  <span
+                    className={`font-medium ${dbRecoverySession.status === "PAUSED" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}
+                  >
+                    {dbRecoverySession.status === "PAUSED"
+                      ? "Paused"
+                      : "Active"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Started</span>
+                  <span className="font-medium flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {formatTimeAgo(dbCreatedAt)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-1.5"
+                  onClick={handleDiscardFromDB}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Discard
+                </Button>
+                <Button className="flex-1 gap-1.5" onClick={handleResumeFromDB}>
+                  <PlayCircle className="h-4 w-4" />
+                  Resume
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show localStorage recovery dialog
+  if (sessionRecovered && hydrationChecked && session.isActive) {
+    const recoveredAccuracy =
+      session.wordsRecited > 0
+        ? Math.round((session.correctWords / session.wordsRecited) * 100)
+        : 0;
+    return (
+      <div className="flex flex-col -mt-14 lg:-mt-16 h-[calc(100dvh-5rem)] lg:h-[calc(100dvh-4.125rem)] bg-[#F8FAF9] dark:bg-[#121E18]">
+        <MemorizeToolbar
+          memorizeMode={memorizeMode}
+          onModeChange={setMemorizeMode}
+          isActive={false}
+          onStartSession={handleStartSession}
+          onEndSession={handleEndSession}
+        />
+        <div className="flex-1 min-h-0 flex items-center justify-center bg-[#F2F0ED] dark:bg-[#0A1210] p-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PlayCircle className="h-5 w-5 text-[#059669] dark:text-[#00E5A0]" />
+                Resume Session?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                You have an unfinished memorization session.
+              </p>
+
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Mode</span>
+                  <span className="font-medium">
+                    {modeLabels[session.targetType] ?? session.targetType}
+                  </span>
+                </div>
+                {session.targetType === "mushaf" ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Page</span>
+                    <span className="font-medium">
+                      {session.currentPageNumber}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Range</span>
+                    <span className="font-medium">
+                      {session.surahNumber}:{session.startAyah}–
+                      {session.endAyah}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Current Ayah</span>
+                  <span className="font-medium">
+                    {session.surahNumber}:{session.currentAyah}
+                  </span>
+                </div>
+                {session.wordsRecited > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Accuracy</span>
+                    <span className="font-medium">{recoveredAccuracy}%</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Started</span>
+                  <span className="font-medium flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {session.startTime
+                      ? formatTimeAgo(session.startTime)
+                      : "unknown"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-1.5"
+                  onClick={handleDiscardSession}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Discard
+                </Button>
+                <Button
+                  className="flex-1 gap-1.5"
+                  onClick={handleResumeSession}
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Resume
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   // Show session summary
   if (sessionSummary) {
     return (
@@ -1121,6 +1569,7 @@ export default function MemorizePage() {
         isActive={session.isActive}
         onStartSession={handleStartSession}
         onEndSession={handleEndSession}
+        onSaveAndExit={session.activeSessionId ? handleSaveAndExit : undefined}
         extraActions={
           isMushafActive ? <MushafSidebarMobile {...sidebarProps} /> : undefined
         }

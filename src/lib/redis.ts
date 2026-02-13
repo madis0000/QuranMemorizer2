@@ -10,10 +10,12 @@ let redis: Redis | null = null;
 export function getRedis(): Redis {
   if (!redis) {
     redis = new Redis(getRedisUrl(), {
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 1,
+      connectTimeout: 1000,
+      commandTimeout: 1000,
       retryStrategy(times) {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
+        if (times > 2) return null; // Stop retrying after 2 attempts
+        return Math.min(times * 50, 500);
       },
       lazyConnect: true,
     });

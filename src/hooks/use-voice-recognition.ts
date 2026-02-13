@@ -40,15 +40,46 @@ export function useVoiceRecognition({
 
   const handleTranscript = useCallback((text: string, isFinal: boolean) => {
     if (isFinal) {
-      accumulatedTextRef.current +=
-        (accumulatedTextRef.current ? " " : "") + text;
+      const newText = text.trim();
+      if (!newText) return;
+
+      const newWords = newText.split(/\s+/).filter((w) => w.length > 0);
+      let uniqueNewWords = newWords;
+
+      if (accumulatedTextRef.current) {
+        // Web Speech API sometimes sends overlapping final results where the
+        // beginning of the new result duplicates the end of accumulated text.
+        // Detect and remove the overlap to prevent duplicate words that tank accuracy.
+        const accWords = accumulatedTextRef.current
+          .split(/\s+/)
+          .filter((w) => w.length > 0);
+        let bestOverlap = 0;
+        const maxCheck = Math.min(accWords.length, newWords.length, 20);
+        for (let len = 1; len <= maxCheck; len++) {
+          let match = true;
+          for (let i = 0; i < len; i++) {
+            if (accWords[accWords.length - len + i] !== newWords[i]) {
+              match = false;
+              break;
+            }
+          }
+          if (match) bestOverlap = len;
+        }
+        uniqueNewWords = newWords.slice(bestOverlap);
+        if (uniqueNewWords.length > 0) {
+          accumulatedTextRef.current += " " + uniqueNewWords.join(" ");
+        }
+        // If uniqueNewWords is empty, entire result was duplicate — skip
+      } else {
+        accumulatedTextRef.current = newText;
+      }
+
       setFinalText(accumulatedTextRef.current);
       setInterimText("");
 
-      // Record word timestamps for fluency tracking
-      const newWords = text.split(/\s+/).filter((w) => w.length > 0);
+      // Record word timestamps for fluency tracking — only unique new words
       const tracker = fluencyTrackerRef.current;
-      for (const word of newWords) {
+      for (const word of uniqueNewWords) {
         tracker.recordWordTimestamp(word);
       }
       setFluencyMetrics(tracker.getMetrics());

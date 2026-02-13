@@ -46,8 +46,8 @@ export function WelcomeStep({
             className={cn(
               "flex items-center justify-between p-4 rounded-xl border-2 transition-all",
               selectedLanguage === locale.code
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-primary/50"
+                ? "border-[#059669] bg-[#059669]/10 dark:border-[#00E5A0] dark:bg-[#00E5A0]/10 shadow-sm"
+                : "border-[#D1E0D8] dark:border-[#00E5A0]/10 hover:border-[#059669]/50 dark:hover:border-[#00E5A0]/30"
             )}
           >
             <div className="text-start">
@@ -60,13 +60,13 @@ export function WelcomeStep({
               className={cn(
                 "h-5 w-5 rounded-full border-2 transition-colors",
                 selectedLanguage === locale.code
-                  ? "border-primary bg-primary"
-                  : "border-muted-foreground"
+                  ? "border-[#059669] bg-[#059669] dark:border-[#00E5A0] dark:bg-[#00E5A0]"
+                  : "border-[#9CA3AF] dark:border-[#6B7280]"
               )}
             >
               {selectedLanguage === locale.code && (
                 <div className="h-full w-full flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                  <div className="h-2 w-2 rounded-full bg-white dark:bg-[#0F1A14]" />
                 </div>
               )}
             </div>

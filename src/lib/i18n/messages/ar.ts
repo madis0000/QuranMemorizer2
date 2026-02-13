@@ -7,6 +7,14 @@ const ar: Record<string, string> = {
   "nav.progress": "التقدم",
   "nav.settings": "الإعدادات",
   "nav.circles": "الحلقات",
+  "nav.review": "المراجعة",
+  "nav.garden": "الحديقة",
+  "nav.challenges": "التحديات",
+  "nav.similar": "آيات متشابهة",
+  "nav.achievements": "الإنجازات",
+  "nav.tajweed": "التجويد",
+  "nav.sessions": "الجلسات",
+  "nav.more": "المزيد",
 
   // Auth
   "auth.login": "تسجيل الدخول",
@@ -120,12 +128,6 @@ const ar: Record<string, string> = {
   "onboarding.summary": "أنت جاهز!",
   "onboarding.summary_desc":
     "تم حفظ تفضيلاتك. يمكنك تغييرها في أي وقت من الإعدادات.",
-
-  // Navigation (new)
-  "nav.review": "المراجعة",
-  "nav.garden": "الحديقة",
-  "nav.challenges": "التحديات",
-  "nav.similar": "آيات متشابهة",
 
   // Review / SRS
   "review.title": "المراجعة المتباعدة",

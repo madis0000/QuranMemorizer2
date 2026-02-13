@@ -40,15 +40,15 @@ export function TimeStep({ selected, onSelect, title, t }: TimeStepProps) {
             className={cn(
               "flex flex-col items-center gap-2 p-6 rounded-xl border-2 transition-all",
               selected === option.minutes
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-primary/50"
+                ? "border-[#059669] bg-[#059669]/10 dark:border-[#00E5A0] dark:bg-[#00E5A0]/10 shadow-sm"
+                : "border-[#D1E0D8] dark:border-[#00E5A0]/10 hover:border-[#059669]/50 dark:hover:border-[#00E5A0]/30"
             )}
           >
             <Clock
               className={cn(
                 "h-8 w-8",
                 selected === option.minutes
-                  ? "text-primary"
+                  ? "text-[#059669] dark:text-[#00E5A0]"
                   : "text-muted-foreground"
               )}
             />

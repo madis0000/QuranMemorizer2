@@ -1,5 +1,8 @@
 "use client";
 
+import { SURAH_NAMES } from "@/data/hizb-data";
+import { SUBJECT_THEMES } from "@/data/subject-themes";
+
 import type { DetectedMistake } from "@/lib/memorization/mistakeDetector";
 import { cn } from "@/lib/utils";
 import type { SessionSummary as SessionSummaryType } from "@/stores/sessionStore";
@@ -85,7 +88,7 @@ export function SessionSummary({
         </div>
 
         {/* Session Info */}
-        <div className="rounded-lg bg-muted/50 p-3 text-sm">
+        <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Mode</span>
             <span className="font-medium">
@@ -93,9 +96,15 @@ export function SessionSummary({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Surah</span>
+            <span className="text-muted-foreground">Target</span>
             <span className="font-medium">
-              {summary.surahNumber}:{summary.startAyah}-{summary.endAyah}
+              <SessionTarget summary={summary} />
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Verses</span>
+            <span className="font-medium">
+              {summary.versesCompleted ?? 0} / {summary.totalVerses ?? 0}
             </span>
           </div>
           <div className="flex justify-between">
@@ -131,4 +140,36 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
   );
+}
+
+function SessionTarget({ summary }: { summary: SessionSummaryType }) {
+  const surahName =
+    SURAH_NAMES[summary.surahNumber] ?? `Surah ${summary.surahNumber}`;
+
+  switch (summary.targetType) {
+    case "mushaf":
+      return <>Page {summary.startAyah}</>;
+    case "ayah":
+      return (
+        <>
+          {surahName} {summary.startAyah}-{summary.endAyah}
+        </>
+      );
+    case "surah":
+      return <>{surahName}</>;
+    case "juz":
+      return <>Juz {summary.juzNumber ?? "?"}</>;
+    case "hizb":
+      return <>Hizb {summary.hizbNumber ?? "?"}</>;
+    case "subject": {
+      const theme = SUBJECT_THEMES.find((t) => t.id === summary.subjectId);
+      return <>{theme?.nameEn ?? "Subject"}</>;
+    }
+    default:
+      return (
+        <>
+          {surahName} {summary.startAyah}-{summary.endAyah}
+        </>
+      );
+  }
 }

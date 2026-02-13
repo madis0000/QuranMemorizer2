@@ -2,34 +2,16 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useUserStore } from "@/stores";
-import {
-  BarChart3,
-  BookOpen,
-  Brain,
-  Flame,
-  Flower2,
-  GitCompareArrows,
-  Headphones,
-  Menu,
-  RotateCcw,
-  Search,
-  Settings,
-  Star,
-  Swords,
-  Trees,
-  Users,
-  X,
-} from "lucide-react";
 
 import { getAchievementByCode } from "@/lib/gamification/achievements";
-import { getXPProgress } from "@/lib/gamification/xp";
-import { cn } from "@/lib/utils";
-import { useTranslation } from "@/hooks/use-translation";
 import { useGamificationStore } from "@/stores/gamificationStore";
-import { Button } from "@/components/ui/button";
+import {
+  MobileBottomNav,
+  MobileTopBar,
+} from "@/components/layout/MobileBottomNav";
+import { TopNavBar } from "@/components/layout/TopNavBar";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 // Dynamic imports for heavy components — reduces initial bundle
@@ -64,20 +46,6 @@ const VoiceSearchFAB = dynamic(
   { ssr: false }
 );
 
-const navigation = [
-  { nameKey: "nav.quran", href: "/quran", icon: BookOpen },
-  { nameKey: "nav.memorize", href: "/memorize", icon: Brain },
-  { nameKey: "nav.review", href: "/review", icon: RotateCcw },
-  { nameKey: "nav.listen", href: "/listen", icon: Headphones },
-  { nameKey: "nav.search", href: "/search", icon: Search },
-  { nameKey: "nav.progress", href: "/progress", icon: BarChart3 },
-  { nameKey: "nav.garden", href: "/garden", icon: Flower2 },
-  { nameKey: "nav.challenges", href: "/challenges", icon: Swords },
-  { nameKey: "nav.similar", href: "/similar-verses", icon: GitCompareArrows },
-  { nameKey: "nav.circles", href: "/circles", icon: Users },
-  { nameKey: "nav.settings", href: "/settings", icon: Settings },
-];
-
 export default function MainLayout({
   children,
 }: {
@@ -85,187 +53,51 @@ export default function MainLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { streak, sidebarOpen, toggleSidebar, isOnboarded } = useUserStore();
-  const { t } = useTranslation();
-  const {
-    totalXP,
-    recentXPAward,
-    clearXPAward,
-    recentAchievement,
-    dismissAchievement,
-  } = useGamificationStore();
-  const xpProgress = getXPProgress(totalXP);
+  const { isOnboarded } = useUserStore();
+  const { recentXPAward, clearXPAward, recentAchievement, dismissAchievement } =
+    useGamificationStore();
   const achievementData = recentAchievement
     ? getAchievementByCode(recentAchievement)
     : null;
 
-  // Redirect to onboarding if not completed
+  // Redirect to onboarding if not completed (wait for Zustand hydration first)
+  const [hydrated, setHydrated] = useState(() =>
+    useUserStore.persist.hasHydrated()
+  );
   useEffect(() => {
-    if (!isOnboarded && pathname !== "/onboarding") {
+    if (hydrated) return;
+    // Zustand persist hydrates async — wait for it before checking isOnboarded
+    const unsub = useUserStore.persist.onFinishHydration(() => {
+      setHydrated(true);
+    });
+    return () => {
+      unsub();
+    };
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (hydrated && !isOnboarded && pathname !== "/onboarding") {
       router.push("/onboarding");
     }
-  }, [isOnboarded, pathname, router]);
+  }, [hydrated, isOnboarded, pathname, router]);
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <aside
-        className={cn(
-          "hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 transition-all duration-300",
-          sidebarOpen ? "lg:w-64" : "lg:w-20"
-        )}
-      >
-        <div className="flex flex-col flex-grow border-r border-[#D1E0D8] bg-white/80 backdrop-blur-sm dark:border-[#00E5A0]/10 dark:bg-[#0F1A14]/90">
-          {/* Logo */}
-          <div className="flex h-16 items-center justify-between px-4 border-b border-[#D1E0D8] dark:border-[#00E5A0]/10">
-            {sidebarOpen && (
-              <Link href="/" className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-[#059669] dark:bg-[#00E5A0]/20 dark:shadow-[0_0_15px_rgba(0,229,160,0.3)] flex items-center justify-center">
-                  <Trees className="h-5 w-5 text-primary-foreground dark:text-[#00E5A0]" />
-                </div>
-                <span className="font-semibold text-lg">QuranMemorizer</span>
-              </Link>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebar}
-              className="shrink-0"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div>
+    <div className="min-h-screen bg-background">
+      {/* Desktop Top Nav */}
+      <TopNavBar />
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-4 space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.nameKey}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-[#059669]/10 text-[#059669] dark:bg-[#00E5A0]/10 dark:text-[#00E5A0]"
-                      : "text-muted-foreground hover:bg-[#059669]/5 dark:hover:bg-[#00E5A0]/5 hover:text-accent-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {sidebarOpen && <span>{t(item.nameKey)}</span>}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Streak Display */}
-          {sidebarOpen && (
-            <div className="p-4 border-t border-[#D1E0D8] dark:border-[#00E5A0]/10 space-y-3">
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#059669]/5 border border-[#D1E0D8] dark:bg-[#00E5A0]/5 dark:border-[#00E5A0]/10">
-                <Flame className="h-5 w-5 text-[#FFD700]" />
-                <div>
-                  <p className="text-sm font-medium">
-                    {streak.currentStreak} {t("streak.day_streak")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {t("streak.keep_going")}
-                  </p>
-                </div>
-              </div>
-              {/* XP Level Progress */}
-              <div className="px-3 py-2 rounded-lg bg-[#059669]/5 border border-[#D1E0D8] dark:bg-[#00E5A0]/5 dark:border-[#00E5A0]/10">
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Star className="w-4 h-4 text-[#059669] dark:text-[#00E5A0] fill-[#059669] dark:fill-[#00E5A0]" />
-                    <span className="text-sm font-semibold">
-                      Level {xpProgress.level}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {xpProgress.currentXP} / {xpProgress.nextLevelXP} XP
-                  </span>
-                </div>
-                <div className="relative h-2 bg-[#D1E0D8] dark:bg-[#00E5A0]/10 rounded-full overflow-hidden">
-                  <div
-                    className="absolute inset-0 bg-gradient-to-r from-[#059669] to-[#047857] dark:from-[#00E5A0] dark:to-[#00E5A0]/70 rounded-full transition-all duration-500"
-                    style={{ width: `${xpProgress.progress}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </aside>
-
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 border-b border-[#D1E0D8] bg-white/80 backdrop-blur-sm dark:border-[#00E5A0]/10 dark:bg-[#0F1A14]/90">
-        <div className="flex h-full items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-[#059669] dark:bg-[#00E5A0]/20 dark:shadow-[0_0_15px_rgba(0,229,160,0.3)] flex items-center justify-center">
-              <Trees className="h-5 w-5 text-primary-foreground dark:text-[#00E5A0]" />
-            </div>
-            <span className="font-semibold">QuranMemorizer</span>
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 pt-16">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <nav className="relative bg-white/95 backdrop-blur-md border-r border-[#D1E0D8] dark:bg-[#0F1A14]/95 dark:border-[#00E5A0]/10 w-64 h-full py-4 px-3 space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.nameKey}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-[#059669]/10 text-[#059669] dark:bg-[#00E5A0]/10 dark:text-[#00E5A0]"
-                      : "text-muted-foreground hover:bg-[#059669]/5 dark:hover:bg-[#00E5A0]/5 hover:text-accent-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{t(item.nameKey)}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      )}
+      {/* Mobile Top Bar */}
+      <MobileTopBar />
 
       {/* Main Content */}
-      <main
-        className={cn(
-          "flex-1 transition-all duration-300",
-          sidebarOpen ? "lg:ml-64" : "lg:ml-20",
-          "pt-16 lg:pt-0"
-        )}
-      >
-        <div className="h-full pb-16">
-          <ErrorBoundary>{children}</ErrorBoundary>
-        </div>
+      <main className="pt-14 lg:pt-16 pb-20 lg:pb-0">
+        <ErrorBoundary>{children}</ErrorBoundary>
         <MiniPlayer />
         <BlessedTimeIndicator />
       </main>
+
+      {/* Mobile Bottom Nav */}
+      <MobileBottomNav />
 
       {/* Voice Search FAB - floats above all content */}
       <VoiceSearchFAB />

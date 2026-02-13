@@ -2,13 +2,14 @@
  * Mushaf Layout Hooks
  *
  * React Query hooks for fetching accurate Mushaf page layouts.
- * Provides offline-first support via IndexedDB caching.
+ * Three-tier fallback: Internal API → IndexedDB → GitHub (external).
  */
 
 import { useCallback } from "react";
 import type { MushafEditionId, MushafPage } from "@/types/quran";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { fetchPageLayoutInternal } from "@/lib/quran/api-internal";
 import {
   fetchAccuratePageLayout,
   getTotalPages,
@@ -24,10 +25,18 @@ const layoutKeys = {
     [...layoutKeys.all, edition, pageNumber] as const,
 };
 
+// ===== Helper: background save to IndexedDB =====
+
+function backgroundSave(fn: () => Promise<void>): void {
+  fn().catch(() => {
+    // Silently ignore IndexedDB save errors (e.g., in Docker/SSR)
+  });
+}
+
 // ===== Main Hook =====
 
 /**
- * Fetch accurate page layout with offline-first support
+ * Fetch accurate page layout: Internal API → IndexedDB → GitHub
  *
  * @param pageNumber - Page number (1-604 for Madinah, varies by edition)
  * @param edition - Mushaf edition (default: madinah_1421)
@@ -41,26 +50,30 @@ export function useAccuratePage(
   return useQuery({
     queryKey: layoutKeys.page(edition, pageNumber),
     queryFn: async (): Promise<MushafPage> => {
-      // Try IndexedDB cache first (offline support)
+      // 1. Try internal API (PostgreSQL — works in Docker)
+      try {
+        const page = await fetchPageLayoutInternal(pageNumber);
+        if (page && page.lines && page.lines.length > 0) {
+          backgroundSave(() => savePageLayout(edition, page));
+          return page;
+        }
+      } catch {
+        // Internal API unavailable, fall through
+      }
+
+      // 2. Try IndexedDB cache (offline support)
       try {
         const cached = await getPageLayout(edition, pageNumber);
         if (cached) {
           return cached;
         }
-      } catch (error) {
-        console.warn("Failed to read from IndexedDB cache:", error);
+      } catch {
+        // IndexedDB unavailable
       }
 
-      // Fetch from remote source
+      // 3. Fetch from GitHub (external, last resort)
       const page = await fetchAccuratePageLayout(pageNumber, edition);
-
-      // Cache for offline use
-      try {
-        await savePageLayout(edition, page);
-      } catch (error) {
-        console.warn("Failed to cache page layout:", error);
-      }
-
+      backgroundSave(() => savePageLayout(edition, page));
       return page;
     },
     enabled: enabled && isLayoutAvailable(edition),
@@ -92,13 +105,24 @@ export function usePrefetchLayout() {
       await queryClient.prefetchQuery({
         queryKey: layoutKeys.page(edition, pageNumber),
         queryFn: async () => {
-          // Try cache first
+          // Try internal API first
+          try {
+            const page = await fetchPageLayoutInternal(pageNumber);
+            if (page && page.lines && page.lines.length > 0) {
+              backgroundSave(() => savePageLayout(edition, page));
+              return page;
+            }
+          } catch {
+            // Fall through
+          }
+
+          // Try cache
           const cached = await getPageLayout(edition, pageNumber);
           if (cached) return cached;
 
-          // Fetch and cache
+          // Fetch from GitHub and cache
           const page = await fetchAccuratePageLayout(pageNumber, edition);
-          await savePageLayout(edition, page);
+          backgroundSave(() => savePageLayout(edition, page));
           return page;
         },
         staleTime: Infinity,
@@ -140,11 +164,21 @@ export function usePrefetchLayoutRange() {
             queryClient.prefetchQuery({
               queryKey: layoutKeys.page(edition, pageNumber),
               queryFn: async () => {
+                try {
+                  const page = await fetchPageLayoutInternal(pageNumber);
+                  if (page && page.lines && page.lines.length > 0) {
+                    backgroundSave(() => savePageLayout(edition, page));
+                    return page;
+                  }
+                } catch {
+                  // Fall through
+                }
+
                 const cached = await getPageLayout(edition, pageNumber);
                 if (cached) return cached;
 
                 const page = await fetchAccuratePageLayout(pageNumber, edition);
-                await savePageLayout(edition, page);
+                backgroundSave(() => savePageLayout(edition, page));
                 return page;
               },
               staleTime: Infinity,

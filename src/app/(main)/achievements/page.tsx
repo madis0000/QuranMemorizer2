@@ -222,21 +222,17 @@ export default function AchievementsPage() {
   const totalXPFromAchievements = earnedCount * 50; // Assuming 50 XP per achievement
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="ambient-gold max-w-6xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="bg-gradient-to-br from-[#059669] to-[#047857] dark:from-[#00E5A0]/20 dark:to-[#00E5A0]/10 p-3 rounded-lg">
-            <Trophy className="w-8 h-8 text-white dark:text-[#00E5A0]" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold text-[#1A2E22] dark:text-[#E8F0EC]">
-              Achievements
-            </h1>
-            <p className="text-[#5A7B6B] dark:text-[#6B8B7B]">
-              Track your Quran learning milestones
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#059669]/10 dark:bg-[#00E5A0]/10 flex items-center justify-center">
+          <Trophy className="w-5 h-5 text-[#059669] dark:text-[#00E5A0]" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Achievements</h1>
+          <p className="text-sm text-muted-foreground">
+            Track your Quran learning milestones
+          </p>
         </div>
       </div>
 

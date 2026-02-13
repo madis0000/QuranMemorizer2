@@ -117,6 +117,13 @@ model RecitationSession {
   // Audio recording (optional)
   audioUrl    String?
 
+  // Session lifecycle
+  status        SessionStatus @default(COMPLETED)
+  stateSnapshot Json?         // Full Zustand state for resume
+  targetType    String?       // "mushaf" | "ayah" | "surah" | "juz" | "hizb" | "subject"
+  pausedAt      DateTime?
+  completedAt   DateTime?
+
   createdAt   DateTime  @default(now())
 
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -124,6 +131,7 @@ model RecitationSession {
 
   @@index([userId])
   @@index([userId, createdAt])
+  @@index([userId, status])
   @@index([surahNumber])
 }
 
@@ -132,6 +140,13 @@ enum SessionMode {
   MEMORIZE
   LISTEN
   REVIEW
+}
+
+enum SessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  DISCARDED
 }
 
 model Mistake {
@@ -556,4 +571,116 @@ model PushSubscription {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// ===== Quran Reference Data =====
+
+model QuranSurah {
+  number                 Int         @id          // 1-114, natural key
+  name                   String                   // Arabic name with diacritics
+  englishName            String
+  englishNameTranslation String
+  numberOfAyahs          Int
+  revelationType         String                   // "Meccan" | "Medinan"
+  startPage              Int                      // Madinah Mushaf start page
+  ayahs                  QuranAyah[]
+
+  @@index([englishName])
+}
+
+model QuranAyah {
+  id              String     @id @default(cuid())
+  number          Int                              // Global (1-6236)
+  numberInSurah   Int
+  surahNumber     Int
+  text            String     @db.Text              // Uthmani script
+  textSimple      String     @db.Text              // No diacritics
+  juz             Int
+  hizb            Int
+  hizbQuarter     Int
+  page            Int                              // Madinah Mushaf page
+  sajda           Json?
+  surah           QuranSurah @relation(fields: [surahNumber], references: [number])
+
+  @@unique([surahNumber, numberInSurah])
+  @@index([surahNumber])
+  @@index([page])
+  @@index([juz])
+  @@index([number])
+}
+
+model QuranPageLayout {
+  id              Int        @id                   // Page number (1-604)
+  edition         String     @default("madinah_1421")
+  layout          Json                             // Full MushafPage JSON
+  surahsOnPage    Int[]
+  juz             Int
+  hizb            Int
+
+  @@unique([id, edition])
+  @@index([edition])
+}
+
+model QuranJuz {
+  number          Int        @id                   // 1-30
+  name            String
+  nameArabic      String
+  startSurah      Int
+  startAyah       Int
+  startPage       Int
+}
+
+model QuranReciter {
+  id              String     @id                   // e.g., "ar.alafasy"
+  name            String
+  englishName     String
+  arabicName      String
+  style           String?
+  bitrate         Int?
+  baseUrl         String
+}
+
+model QuranWord {
+  id              Int      @id @default(autoincrement())
+  surahNumber     Int
+  ayahNumber      Int
+  position        Int                              // 1-indexed in ayah
+  textUthmani     String
+  textIndopak     String?
+  textSimple      String                           // No diacritics
+  transliteration String?
+  translation     String?                          // Word-by-word English
+  charType        String   @default("word")        // "word" | "end" | "pause"
+  wordKey         String   @unique                 // "2:255:3"
+  audioUrl        String?
+
+  @@index([surahNumber, ayahNumber])
+  @@index([surahNumber])
+}
+
+model TranslationEdition {
+  identifier    String  @id                // "en.sahih"
+  name          String
+  englishName   String
+  language      String                     // "en", "ar", "ur"
+  direction     String  @default("ltr")
+  author        String?
+  isPopular     Boolean @default(false)
+  translations  QuranTranslation[]
+
+  @@index([language])
+}
+
+model QuranTranslation {
+  id            Int      @id @default(autoincrement())
+  editionId     String
+  surahNumber   Int
+  ayahNumber    Int
+  text          String   @db.Text
+
+  edition       TranslationEdition @relation(fields: [editionId], references: [identifier])
+
+  @@unique([editionId, surahNumber, ayahNumber])
+  @@index([editionId, surahNumber])
+  @@index([surahNumber, ayahNumber])
 }

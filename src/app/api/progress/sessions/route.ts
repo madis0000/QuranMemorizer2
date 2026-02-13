@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import type { MistakeSeverity, MistakeType, SessionMode } from "@prisma/client";
+import type {
+  MistakeSeverity,
+  MistakeType,
+  SessionMode,
+  SessionStatus,
+} from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -20,10 +25,31 @@ export async function GET(request: NextRequest) {
     );
     const offset = parseInt(searchParams.get("offset") || "0", 10);
     const mode = searchParams.get("mode") as SessionMode | null;
+    const statusParam = searchParams.get("status");
+
+    // Parse status filter: comma-separated list (e.g., "ACTIVE,PAUSED")
+    // Default: COMPLETED only (backward compatible)
+    const validStatuses: SessionStatus[] = [
+      "ACTIVE",
+      "PAUSED",
+      "COMPLETED",
+      "DISCARDED",
+    ];
+    let statusFilter: SessionStatus[] | undefined;
+    if (statusParam) {
+      statusFilter = statusParam
+        .split(",")
+        .map((s) => s.trim().toUpperCase() as SessionStatus)
+        .filter((s) => validStatuses.includes(s));
+      if (statusFilter.length === 0) statusFilter = undefined;
+    }
 
     const where = {
       userId,
       ...(mode && { mode }),
+      ...(statusFilter
+        ? { status: { in: statusFilter } }
+        : { status: "COMPLETED" as SessionStatus }),
     };
 
     const [sessions, total] = await Promise.all([
@@ -72,6 +98,9 @@ export async function POST(request: NextRequest) {
       wordsRecited,
       mistakeCount,
       mistakes,
+      status: requestedStatus,
+      stateSnapshot,
+      targetType,
     } = body;
 
     // Validate required fields
@@ -108,7 +137,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate mistakes if provided
+    // Determine status
+    const sessionStatus: SessionStatus =
+      requestedStatus === "ACTIVE" ? "ACTIVE" : "COMPLETED";
+
+    // For ACTIVE sessions: save snapshot, skip stats updates
+    if (sessionStatus === "ACTIVE") {
+      const newSession = await prisma.recitationSession.create({
+        data: {
+          userId,
+          surahNumber,
+          startAyah,
+          endAyah,
+          pageNumber: pageNumber ?? null,
+          mode,
+          duration: duration ?? 0,
+          accuracy: accuracy ?? null,
+          wordsRecited: wordsRecited ?? 0,
+          mistakeCount: mistakeCount ?? 0,
+          status: "ACTIVE",
+          stateSnapshot: stateSnapshot ?? null,
+          targetType: targetType ?? null,
+        },
+      });
+
+      return NextResponse.json(
+        { id: newSession.id, status: newSession.status },
+        { status: 201 }
+      );
+    }
+
+    // Validate mistakes if provided (for COMPLETED sessions)
     if (mistakes && Array.isArray(mistakes)) {
       const validMistakeTypes: MistakeType[] = [
         "WRONG_WORD",
@@ -154,7 +213,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create session and mistakes in a transaction, and update user stats
+    // Create COMPLETED session with mistakes in a transaction, and update user stats
     const createdSession = await prisma.$transaction(async (tx) => {
       const newSession = await tx.recitationSession.create({
         data: {
@@ -168,6 +227,9 @@ export async function POST(request: NextRequest) {
           accuracy: accuracy ?? null,
           wordsRecited: wordsRecited ?? 0,
           mistakeCount: mistakeCount ?? 0,
+          status: "COMPLETED",
+          completedAt: new Date(),
+          targetType: targetType ?? null,
           ...(mistakes && mistakes.length > 0
             ? {
                 mistakes: {
@@ -208,6 +270,45 @@ export async function POST(request: NextRequest) {
           lastActiveAt: new Date(),
         },
       });
+
+      // Upsert today's StreakHistory (UTC date to avoid timezone bugs)
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+
+      const existingStreak = await tx.streakHistory.findUnique({
+        where: { userId_date: { userId, date: today } },
+      });
+
+      if (!existingStreak) {
+        await tx.streakHistory.create({
+          data: { userId, date: today, isActive: true },
+        });
+
+        // Update streak count — only on first session of the day
+        const yesterday = new Date(today);
+        yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+
+        const yesterdayActive = await tx.streakHistory.findUnique({
+          where: { userId_date: { userId, date: yesterday } },
+        });
+
+        const currentUser = await tx.user.findUniqueOrThrow({
+          where: { id: userId },
+          select: { streakCount: true, longestStreak: true },
+        });
+
+        const newStreak = yesterdayActive?.isActive
+          ? currentUser.streakCount + 1
+          : 1;
+
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            streakCount: newStreak,
+            longestStreak: Math.max(newStreak, currentUser.longestStreak),
+          },
+        });
+      }
 
       return newSession;
     });

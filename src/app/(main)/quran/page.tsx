@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuranStore } from "@/stores";
 import {
   MUSHAF_EDITIONS,
   type MushafEditionId,
   type MushafWord as MushafWordType,
 } from "@/types/quran";
-import { BookOpen, Languages, List, Palette, Settings2, X } from "lucide-react";
+import { Languages, List, Palette, Settings2, X } from "lucide-react";
 
 import { SURAH_NAMES } from "@/lib/quran/mushaf-layout";
 import { cn } from "@/lib/utils";
@@ -52,8 +52,16 @@ export default function QuranPage() {
   // Fetch surahs for navigation
   const { data: surahs, isLoading: surahsLoading } = useSurahs();
 
-  // Get last reading position
+  // Get last reading position — only used on initial mount
   const { data: lastPosition } = useReadingProgress();
+
+  // Restore last reading position on initial load
+  useEffect(() => {
+    if (lastPosition?.pageNumber && currentPage === 1) {
+      setCurrentPage(lastPosition.pageNumber);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastPosition?.pageNumber]);
 
   // Handle word click for tooltip/info
   const handleWordClick = useCallback((word: MushafWordType) => {
@@ -86,49 +94,49 @@ export default function QuranPage() {
   const editionConfig = MUSHAF_EDITIONS[mushafEdition];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-[#D1E0D8] bg-white/80 backdrop-blur-sm dark:border-[#00E5A0]/10 dark:bg-[#0F1A14]/90">
-        <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-4">
+    <div className="flex flex-col h-[calc(100dvh-8.5rem)] lg:h-[calc(100dvh-4rem)]">
+      {/* Compact Toolbar */}
+      <header className="shrink-0 border-b border-[#D1E0D8]/40 bg-[#F8FAF9] dark:border-[#1E3228] dark:bg-[#121E18]">
+        <div className="flex h-11 items-center justify-between px-4">
+          <div className="flex items-center gap-3">
             {/* Mobile surah list toggle */}
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="xl:hidden">
-                  <List className="h-5 w-5" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 xl:hidden"
+                >
+                  <List className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80">
-                <SheetHeader>
-                  <SheetTitle>Surahs</SheetTitle>
+              <SheetContent side="right" className="w-80 p-0">
+                <SheetHeader className="px-4 py-3 border-b border-[#D1E0D8]/40 dark:border-[#1E3228]">
+                  <SheetTitle className="text-sm">Surahs</SheetTitle>
                 </SheetHeader>
-                <SurahList
-                  surahs={surahs || []}
-                  isLoading={surahsLoading}
-                  onSelect={(surahNumber, startPage) => {
-                    setCurrentPage(startPage);
-                    setSidebarOpen(false);
-                  }}
-                />
+                <div className="h-[calc(100dvh-4rem)] overflow-y-auto">
+                  <SurahList
+                    surahs={surahs || []}
+                    isLoading={surahsLoading}
+                    onSelect={(surahNumber, startPage) => {
+                      setCurrentPage(startPage);
+                      setSidebarOpen(false);
+                    }}
+                  />
+                </div>
               </SheetContent>
             </Sheet>
 
-            <h1 className="text-lg font-semibold flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              <span className="hidden sm:inline">Quran Reader</span>
-            </h1>
-
-            {/* Page indicator */}
+            {/* Page indicator — always visible */}
             <PageIndicator
               currentPage={currentPage}
               totalPages={editionConfig?.totalPages || 604}
-              className="hidden md:flex"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Edition selector */}
-            <div className="hidden md:block">
+            {/* Edition selector — visible on sm+ */}
+            <div className="hidden sm:block">
               <MushafEditionSelector
                 value={mushafEdition}
                 onChange={handleEditionChange}
@@ -138,8 +146,8 @@ export default function QuranPage() {
             {/* Settings dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Settings2 className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Settings2 className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -160,10 +168,10 @@ export default function QuranPage() {
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs md:hidden">
+                <DropdownMenuLabel className="text-xs sm:hidden">
                   Mushaf Edition
                 </DropdownMenuLabel>
-                <div className="px-2 py-1.5 md:hidden">
+                <div className="px-2 py-1.5 sm:hidden">
                   <MushafEditionSelector
                     value={mushafEdition}
                     onChange={handleEditionChange}
@@ -176,20 +184,22 @@ export default function QuranPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex">
+      {/* Main Content — flex with independent scrolling */}
+      <div className="flex-1 flex min-h-0">
         {/* Mushaf Viewer */}
-        <main className="flex-1 container max-w-4xl mx-auto py-6 px-4 xl:mr-64">
-          <MushafViewer
-            initialPage={lastPosition?.pageNumber || currentPage}
-            edition={mushafEdition}
-            showTajweed={showTajweed}
-            showPageNumber={true}
-            showJuzInfo={true}
-            onWordClick={handleWordClick}
-            onWordHover={handleWordHover}
-            onPageChange={handlePageChange}
-          />
+        <main className="flex-1 min-w-0 overflow-y-auto bg-[#F2F0ED] dark:bg-[#0A1210]">
+          <div className="max-w-3xl mx-auto py-5 px-4">
+            <MushafViewer
+              initialPage={currentPage}
+              edition={mushafEdition}
+              showTajweed={showTajweed}
+              showPageNumber={true}
+              showJuzInfo={true}
+              onWordClick={handleWordClick}
+              onWordHover={handleWordHover}
+              onPageChange={handlePageChange}
+            />
+          </div>
 
           {/* Word info popup */}
           {selectedWord && !selectedWord.isAyahEnd && (
@@ -200,13 +210,14 @@ export default function QuranPage() {
           )}
         </main>
 
-        {/* Desktop Surah Sidebar */}
-        <aside className="fixed right-0 top-14 bottom-0 w-64 border-l border-[#D1E0D8] bg-white/80 backdrop-blur-sm dark:border-[#00E5A0]/10 dark:bg-[#0F1A14]/90 hidden xl:block overflow-y-auto">
-          <div className="p-4">
-            <h2 className="font-semibold mb-4 flex items-center gap-2">
-              <List className="h-4 w-4" />
+        {/* Desktop Surah Sidebar — flex child, not fixed */}
+        <aside className="hidden xl:flex flex-col w-72 shrink-0 border-l border-[#D1E0D8]/40 bg-[#F8FAF9] dark:border-[#1E3228] dark:bg-[#121E18]">
+          <div className="px-4 py-3 shrink-0">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Surahs
             </h2>
+          </div>
+          <div className="flex-1 overflow-y-auto">
             <SurahList
               surahs={surahs || []}
               isLoading={surahsLoading}
@@ -239,11 +250,11 @@ interface SurahListProps {
 function SurahList({ surahs, isLoading, onSelect }: SurahListProps) {
   if (isLoading) {
     return (
-      <div className="space-y-2">
+      <div className="px-2">
         {Array.from({ length: 10 }).map((_, i) => (
           <div
             key={i}
-            className="h-12 bg-[#059669]/5 dark:bg-[#00E5A0]/5 rounded-lg animate-pulse"
+            className="h-11 bg-muted/30 rounded-md animate-pulse mb-1"
           />
         ))}
       </div>
@@ -251,31 +262,35 @@ function SurahList({ surahs, isLoading, onSelect }: SurahListProps) {
   }
 
   return (
-    <div className="space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto">
+    <div className="px-2 pb-2">
       {surahs.map((surah) => (
         <button
           key={surah.number}
           onClick={() => onSelect(surah.number, surah.startPage || 1)}
           className={cn(
             "w-full flex items-center justify-between",
-            "px-3 py-2 rounded-lg text-sm",
-            "hover:bg-accent transition-colors"
+            "px-2.5 py-2 rounded-md text-sm",
+            "border-b border-[#D1E0D8]/20 dark:border-[#1E3228] last:border-b-0",
+            "hover:bg-[#059669]/5 dark:hover:bg-[#00E5A0]/5 transition-colors"
           )}
         >
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-[#059669]/10 text-[#059669] dark:bg-[#00E5A0]/10 dark:text-[#00E5A0] flex items-center justify-center text-xs font-medium">
+          <div className="flex items-center gap-2.5">
+            <span className="w-7 h-7 rounded-md bg-[#059669]/8 text-[#059669] dark:bg-[#00E5A0]/8 dark:text-[#00E5A0] flex items-center justify-center text-[11px] font-medium shrink-0">
               {surah.number}
             </span>
             <div className="text-left">
-              <p className="font-medium">
+              <p className="text-[13px] font-medium leading-tight">
                 {surah.englishName || `Surah ${surah.number}`}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground leading-tight">
                 {surah.numberOfAyahs || 0} Ayahs
               </p>
             </div>
           </div>
-          <span className="font-uthmani text-base text-right" dir="rtl">
+          <span
+            className="font-uthmani text-sm text-foreground/60 text-right"
+            dir="rtl"
+          >
             {SURAH_NAMES[surah.number] || surah.name}
           </span>
         </button>
@@ -294,7 +309,7 @@ interface WordInfoPanelProps {
 
 function WordInfoPanel({ word, onClose }: WordInfoPanelProps) {
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
+    <div className="fixed bottom-24 lg:bottom-4 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
       <div className="bg-white/90 border border-[#D1E0D8] rounded-2xl shadow-[0_0_30px_rgba(0,229,160,0.06)] backdrop-blur-sm dark:bg-[#0F1A14]/90 dark:border-[#00E5A0]/10 p-4 min-w-[280px]">
         <div className="flex items-start justify-between mb-3">
           <div>

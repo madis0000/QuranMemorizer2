@@ -21,6 +21,8 @@ interface VoiceRecorderProps {
   onEngineChange?: (engine: EngineType) => void;
   disabled?: boolean;
   className?: string;
+  /** When true, renders only the mic button without engine label, status text, or error. */
+  compact?: boolean;
 }
 
 /** Shape of the object returned by createWebSpeechRecognizer. */
@@ -45,6 +47,7 @@ export function VoiceRecorder({
   onEngineChange,
   disabled = false,
   className,
+  compact = false,
 }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -196,8 +199,18 @@ export function VoiceRecorder({
 
     const recognizer = createWebSpeechRecognizer(
       SpeechRecognitionCtor as new () => SpeechRecognitionInstanceLocal,
-      onTranscript,
+      (text: string, isFinal: boolean) => {
+        // Reset failure counter on each successful result
+        webSpeechFailuresRef.current = 0;
+        onTranscript(text, isFinal);
+      },
       (err: string) => {
+        // "no-speech" is expected during pauses between ayahs — don't
+        // count it as a real failure that should trigger Whisper fallback.
+        if (err === "No speech detected. Please try again.") {
+          return;
+        }
+
         webSpeechFailuresRef.current += 1;
 
         if (webSpeechFailuresRef.current >= MAX_WEB_SPEECH_FAILURES) {
@@ -336,6 +349,37 @@ export function VoiceRecorder({
 
   const engineLabel = activeEngine === "whisper" ? "Whisper AI" : "Web Speech";
 
+  if (compact) {
+    return (
+      <Button
+        size="lg"
+        variant={isRecording ? "destructive" : "default"}
+        className={cn(
+          "relative h-12 w-12 rounded-full p-0 transition-all",
+          isRecording && "animate-pulse",
+          className
+        )}
+        onClick={isRecording ? () => void stopRecording() : startRecording}
+        disabled={disabled || isInitializing}
+        aria-label={isRecording ? "Stop recording" : "Start recording"}
+      >
+        {isRecording && (
+          <span
+            className="absolute inset-0 rounded-full border-4 border-red-400 opacity-50 transition-transform"
+            style={{ transform: `scale(${1 + volume * 0.5})` }}
+          />
+        )}
+        {isInitializing ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : isRecording ? (
+          <Square className="h-5 w-5" />
+        ) : (
+          <Mic className="h-5 w-5" />
+        )}
+      </Button>
+    );
+  }
+
   return (
     <div className={cn("flex flex-col items-center gap-2", className)}>
       {/* Engine indicator */}
@@ -448,9 +492,14 @@ function createWebSpeechRecognizer(
   recognition.maxAlternatives = 1;
 
   let restartCount = 0;
-  const maxRestarts = 3;
+  const maxRestarts = 100;
+  let intentionallyStopped = false;
 
   recognition.onresult = (event: SpeechRecognitionEventLocal) => {
+    // Reset restart counter on each successful result so only consecutive
+    // failures without any results count toward the limit.
+    restartCount = 0;
+
     let interimTranscript = "";
     let finalTranscript = "";
 
@@ -484,15 +533,26 @@ function createWebSpeechRecognizer(
   };
 
   recognition.onend = () => {
-    // Auto-restart if ended unexpectedly
-    if (restartCount < maxRestarts) {
-      restartCount++;
-      try {
-        recognition.start();
-      } catch {
-        // Already running or destroyed
-      }
-    }
+    // Auto-restart if ended unexpectedly.
+    // A delay is required because Chrome throws InvalidStateError when
+    // start() is called synchronously inside onend (cleanup not finished).
+    if (intentionallyStopped || restartCount >= maxRestarts) return;
+    restartCount++;
+
+    const attemptRestart = (delay: number, retriesLeft: number) => {
+      setTimeout(() => {
+        if (intentionallyStopped) return;
+        try {
+          recognition.start();
+        } catch {
+          if (retriesLeft > 0) {
+            attemptRestart(delay * 2, retriesLeft - 1);
+          }
+        }
+      }, delay);
+    };
+
+    attemptRestart(50, 3);
   };
 
   return {
@@ -501,7 +561,7 @@ function createWebSpeechRecognizer(
       recognition.start();
     },
     stop: () => {
-      restartCount = maxRestarts; // Prevent auto-restart
+      intentionallyStopped = true;
       recognition.stop();
     },
   };

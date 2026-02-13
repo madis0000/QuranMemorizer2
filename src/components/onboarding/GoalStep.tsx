@@ -56,15 +56,15 @@ export function GoalStep({ selected, onSelect, title, t }: GoalStepProps) {
             className={cn(
               "flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-start",
               selected === goal.id
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-primary/50"
+                ? "border-[#059669] bg-[#059669]/10 dark:border-[#00E5A0] dark:bg-[#00E5A0]/10 shadow-sm"
+                : "border-[#D1E0D8] dark:border-[#00E5A0]/10 hover:border-[#059669]/50 dark:hover:border-[#00E5A0]/30"
             )}
           >
             <div
               className={cn(
                 "h-12 w-12 rounded-lg flex items-center justify-center shrink-0",
                 selected === goal.id
-                  ? "bg-primary/10 text-primary"
+                  ? "bg-[#059669]/15 text-[#059669] dark:bg-[#00E5A0]/15 dark:text-[#00E5A0]"
                   : "bg-muted text-muted-foreground"
               )}
             >

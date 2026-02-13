@@ -2,6 +2,11 @@
 
 import { Play } from "lucide-react";
 
+import {
+  getFirstLetter,
+  isParticle,
+  shouldHideWord,
+} from "@/lib/memorization/hide-utils";
 import { cn } from "@/lib/utils";
 import type { HideMode } from "@/stores/sessionStore";
 import { Button } from "@/components/ui/button";
@@ -34,85 +39,6 @@ const statusColors: Record<string, string> = {
     "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
   pending: "",
 };
-
-// Arabic particles to hide in keyword_mode
-const ARABIC_PARTICLES = new Set([
-  "من",
-  "في",
-  "على",
-  "إلى",
-  "عن",
-  "إن",
-  "أن",
-  "ما",
-  "لا",
-  "هو",
-  "هي",
-  "الذي",
-  "التي",
-  "هذا",
-  "هذه",
-  "ذلك",
-  "تلك",
-  "كل",
-  "بعض",
-  "غير",
-  "عند",
-  "بين",
-  "حتى",
-  "إذا",
-  "إذ",
-  "لم",
-  "لن",
-  "قد",
-  "سوف",
-  "ثم",
-  "أو",
-  "و",
-  "ف",
-  "ب",
-  "ل",
-  "ك",
-]);
-
-// Get first Arabic letter of a word (skip diacritics)
-function getFirstLetter(word: string): string {
-  for (const char of word) {
-    if (/[\u0621-\u064A]/.test(char)) return char;
-  }
-  return word[0] || "";
-}
-
-// Seeded random for consistent word hiding
-function seededRandom(seed: string, index: number): number {
-  let hash = 0;
-  const str = seed + index;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash % 100) / 100;
-}
-
-// Check if word should be hidden based on difficulty
-function shouldHideWord(
-  index: number,
-  totalWords: number,
-  difficulty: number,
-  seed: string
-): boolean {
-  const hidePercentage = difficulty * 20; // 1->20%, 2->40%, etc.
-  const random = seededRandom(seed, index);
-  return random * 100 < hidePercentage;
-}
-
-// Check if word is an Arabic particle
-function isParticle(word: string): boolean {
-  // Remove diacritics for comparison
-  const cleanWord = word.replace(/[\u064B-\u065F]/g, "");
-  return ARABIC_PARTICLES.has(cleanWord);
-}
 
 export function ProgressiveHideModes({
   words,

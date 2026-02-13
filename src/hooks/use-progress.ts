@@ -7,6 +7,7 @@ export const progressKeys = {
   all: ["progress"] as const,
   sessions: (params?: Record<string, string>) =>
     [...progressKeys.all, "sessions", params] as const,
+  activeSessions: () => [...progressKeys.all, "sessions", "active"] as const,
   streaks: () => [...progressKeys.all, "streaks"] as const,
   goals: (active?: boolean) =>
     [...progressKeys.all, "goals", { active }] as const,
@@ -21,11 +22,13 @@ export function useSessions(params?: {
   limit?: number;
   offset?: number;
   mode?: string;
+  status?: string;
 }) {
   const searchParams = new URLSearchParams();
   if (params?.limit) searchParams.set("limit", params.limit.toString());
   if (params?.offset) searchParams.set("offset", params.offset.toString());
   if (params?.mode) searchParams.set("mode", params.mode);
+  if (params?.status) searchParams.set("status", params.status);
 
   return useQuery({
     queryKey: progressKeys.sessions(Object.fromEntries(searchParams)),
@@ -33,6 +36,154 @@ export function useSessions(params?: {
       const res = await fetch(`/api/progress/sessions?${searchParams}`);
       if (!res.ok) throw new Error("Failed to fetch sessions");
       return res.json();
+    },
+  });
+}
+
+// Fetch ACTIVE/PAUSED sessions for recovery
+export function useActiveSessions() {
+  return useQuery({
+    queryKey: progressKeys.activeSessions(),
+    queryFn: async () => {
+      const res = await fetch(
+        "/api/progress/sessions?status=ACTIVE,PAUSED&limit=5"
+      );
+      if (!res.ok) throw new Error("Failed to fetch active sessions");
+      return res.json() as Promise<{
+        sessions: Array<{
+          id: string;
+          surahNumber: number;
+          startAyah: number;
+          endAyah: number;
+          pageNumber: number | null;
+          mode: string;
+          duration: number;
+          accuracy: number | null;
+          wordsRecited: number;
+          status: string;
+          stateSnapshot: Record<string, unknown> | null;
+          targetType: string | null;
+          pausedAt: string | null;
+          createdAt: string;
+        }>;
+        total: number;
+      }>;
+    },
+    staleTime: 0,
+  });
+}
+
+// Pause an active session
+export function usePauseSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      sessionId: string;
+      stateSnapshot: Record<string, unknown>;
+      duration: number;
+    }) => {
+      const res = await fetch(`/api/progress/sessions/${data.sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "pause",
+          stateSnapshot: data.stateSnapshot,
+          duration: data.duration,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to pause session");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: progressKeys.activeSessions(),
+      });
+    },
+  });
+}
+
+// Resume a paused session
+export function useResumeSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await fetch(`/api/progress/sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resume" }),
+      });
+      if (!res.ok) throw new Error("Failed to resume session");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: progressKeys.activeSessions(),
+      });
+    },
+  });
+}
+
+// Complete a DB-tracked session
+export function useCompleteSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      sessionId: string;
+      duration: number;
+      accuracy?: number;
+      wordsRecited?: number;
+      mistakeCount?: number;
+      mistakes?: Array<{
+        surahNumber: number;
+        ayahNumber: number;
+        wordIndex: number;
+        type: string;
+        recitedText?: string;
+        correctText: string;
+        severity: string;
+      }>;
+    }) => {
+      const res = await fetch(`/api/progress/sessions/${data.sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "complete",
+          duration: data.duration,
+          accuracy: data.accuracy,
+          wordsRecited: data.wordsRecited,
+          mistakeCount: data.mistakeCount,
+          mistakes: data.mistakes,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to complete session");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: progressKeys.all });
+      queryClient.invalidateQueries({ queryKey: progressKeys.streaks() });
+      queryClient.invalidateQueries({
+        queryKey: progressKeys.activeSessions(),
+      });
+    },
+  });
+}
+
+// Discard a session
+export function useDiscardSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await fetch(`/api/progress/sessions/${sessionId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to discard session");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: progressKeys.activeSessions(),
+      });
+      queryClient.invalidateQueries({ queryKey: progressKeys.all });
     },
   });
 }

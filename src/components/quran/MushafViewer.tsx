@@ -59,6 +59,11 @@ export function MushafViewer({
   const editionConfig = MUSHAF_EDITIONS[edition];
   const totalPages = editionConfig?.totalPages || 604;
 
+  // Sync internal page state when parent changes initialPage (e.g. surah sidebar click)
+  useEffect(() => {
+    setCurrentPage(initialPage);
+  }, [initialPage]);
+
   // Fetch accurate page layout from QUL data
   const {
     data: pageLayout,

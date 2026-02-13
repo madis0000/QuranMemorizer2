@@ -1,4 +1,7 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+import type { MemorizeMode } from "./quranStore";
 
 export type SessionMode = "read" | "memorize" | "listen" | "review";
 export type RevealMode = "word" | "phrase" | "ayah" | "line";
@@ -26,17 +29,88 @@ export interface Mistake {
   timestamp: number;
 }
 
+export interface VerseRef {
+  surahNumber: number;
+  ayahNumber: number;
+}
+
+export interface StartSessionConfig {
+  mode: SessionMode;
+  targetType: MemorizeMode;
+  surahNumber: number;
+  startAyah: number;
+  endAyah: number;
+  verseList?: VerseRef[];
+  juzNumber?: number;
+  hizbNumber?: number;
+  subjectId?: string;
+  pageNumber?: number;
+}
+
+export interface DBSessionSnapshot {
+  currentAyah: number;
+  currentVerseIndex: number;
+  currentPageNumber: number;
+  mushafCurrentAyahKey: string | null;
+  revealedWordKeys: string[];
+  revealedWords: number[];
+  wordsRecited: number;
+  correctWords: number;
+  mistakes: Mistake[];
+  verseList: VerseRef[];
+  revealMode: RevealMode;
+  hideMode: HideMode;
+  hideDifficulty: number;
+  mistakeSensitivity: MistakeSensitivity;
+  isHidden: boolean;
+  targetId: number | string;
+  juzNumber: number | null;
+  hizbNumber: number | null;
+  subjectId: string | null;
+}
+
+export interface DBSessionData {
+  id: string;
+  surahNumber: number;
+  startAyah: number;
+  endAyah: number;
+  pageNumber: number | null;
+  mode: string;
+  targetType: string | null;
+  duration: number;
+  stateSnapshot: DBSessionSnapshot | null;
+}
+
 interface SessionState {
   // Session info
   isActive: boolean;
   mode: SessionMode;
   startTime: number | null;
 
+  // DB session ID for sync
+  activeSessionId: string | null;
+
+  // Target type (which memorize mode started this)
+  targetType: MemorizeMode;
+  targetId: number | string;
+
   // Target range
   surahNumber: number;
   startAyah: number;
   endAyah: number;
   currentAyah: number;
+
+  // Cross-surah support
+  verseList: VerseRef[];
+  currentVerseIndex: number;
+  juzNumber: number | null;
+  hizbNumber: number | null;
+  subjectId: string | null;
+
+  // Mushaf mode state
+  currentPageNumber: number;
+  mushafCurrentAyahKey: string | null; // e.g. "2:255"
+  revealedWordKeys: Set<string>; // mushaf-mode revealed word keys
 
   // Memorization settings
   revealMode: RevealMode;
@@ -56,17 +130,24 @@ interface SessionState {
   audioChunks: Blob[];
 
   // Actions
-  startSession: (
+  startSession: (config: StartSessionConfig) => void;
+  /** @deprecated Use startSession(config) instead */
+  startSessionLegacy: (
     mode: SessionMode,
     surah: number,
     startAyah: number,
     endAyah: number
   ) => void;
   endSession: () => SessionSummary | null;
+  discardSession: () => void;
+  setActiveSessionId: (id: string | null) => void;
+  loadFromSnapshot: (dbSession: DBSessionData) => void;
 
   setCurrentAyah: (ayah: number) => void;
   nextAyah: () => void;
   previousAyah: () => void;
+  nextVerse: () => void;
+  previousVerse: () => void;
 
   setRevealMode: (mode: RevealMode) => void;
   setHideMode: (mode: HideMode) => void;
@@ -80,6 +161,12 @@ interface SessionState {
   addMistake: (mistake: Omit<Mistake, "id" | "timestamp">) => void;
   incrementWordsRecited: (correct: boolean) => void;
 
+  // Mushaf mode actions
+  setCurrentPageNumber: (page: number) => void;
+  setMushafCurrentAyahKey: (key: string | null) => void;
+  revealWordKey: (wordKey: string) => void;
+  resetRevealedWordKeys: () => void;
+
   startRecording: () => void;
   stopRecording: () => void;
   addAudioChunk: (chunk: Blob) => void;
@@ -88,6 +175,7 @@ interface SessionState {
 
 export interface SessionSummary {
   mode: SessionMode;
+  targetType: MemorizeMode;
   duration: number; // seconds
   surahNumber: number;
   startAyah: number;
@@ -96,145 +184,390 @@ export interface SessionSummary {
   correctWords: number;
   accuracy: number;
   mistakes: Mistake[];
+  juzNumber: number | null;
+  hizbNumber: number | null;
+  subjectId: string | null;
+  versesCompleted: number;
+  totalVerses: number;
 }
 
-export const useSessionStore = create<SessionState>((set, get) => ({
-  // Initial state
-  isActive: false,
-  mode: "memorize",
-  startTime: null,
-
-  surahNumber: 1,
-  startAyah: 1,
-  endAyah: 7,
-  currentAyah: 1,
-
-  revealMode: "word",
-  hideMode: "full_hide",
-  hideDifficulty: 3,
-  mistakeSensitivity: "normal",
-  isHidden: true,
-  revealedWords: [],
-
-  wordsRecited: 0,
-  correctWords: 0,
-  mistakes: [],
-
-  isRecording: false,
-  audioChunks: [],
-
-  // Actions
-  startSession: (mode, surah, startAyah, endAyah) =>
-    set({
-      isActive: true,
-      mode,
-      startTime: Date.now(),
-      surahNumber: surah,
-      startAyah,
-      endAyah,
-      currentAyah: startAyah,
-      wordsRecited: 0,
-      correctWords: 0,
-      mistakes: [],
-      revealedWords: [],
-      isHidden: mode === "memorize",
-    }),
-
-  endSession: () => {
-    const state = get();
-    if (!state.isActive || !state.startTime) return null;
-
-    const duration = Math.floor((Date.now() - state.startTime) / 1000);
-    const accuracy =
-      state.wordsRecited > 0
-        ? Math.round((state.correctWords / state.wordsRecited) * 100)
-        : 0;
-
-    const summary: SessionSummary = {
-      mode: state.mode,
-      duration,
-      surahNumber: state.surahNumber,
-      startAyah: state.startAyah,
-      endAyah: state.endAyah,
-      wordsRecited: state.wordsRecited,
-      correctWords: state.correctWords,
-      accuracy,
-      mistakes: [...state.mistakes],
-    };
-
-    set({
+export const useSessionStore = create<SessionState>()(
+  persist(
+    (set, get) => ({
+      // Initial state
       isActive: false,
+      mode: "memorize",
       startTime: null,
+
+      activeSessionId: null,
+
+      targetType: "ayah",
+      targetId: 0,
+
+      surahNumber: 1,
+      startAyah: 1,
+      endAyah: 7,
+      currentAyah: 1,
+
+      verseList: [],
+      currentVerseIndex: 0,
+      juzNumber: null,
+      hizbNumber: null,
+      subjectId: null,
+
+      currentPageNumber: 1,
+      mushafCurrentAyahKey: null,
+      revealedWordKeys: new Set<string>(),
+
+      revealMode: "word",
+      hideMode: "full_hide",
+      hideDifficulty: 3,
+      mistakeSensitivity: "normal",
+      isHidden: true,
+      revealedWords: [],
+
       wordsRecited: 0,
       correctWords: 0,
       mistakes: [],
-      revealedWords: [],
+
+      isRecording: false,
       audioChunks: [],
-    });
 
-    return summary;
-  },
+      // Actions
+      startSession: (config) =>
+        set({
+          isActive: true,
+          mode: config.mode,
+          startTime: Date.now(),
+          targetType: config.targetType,
+          targetId:
+            config.juzNumber ??
+            config.hizbNumber ??
+            config.subjectId ??
+            config.pageNumber ??
+            config.surahNumber,
+          surahNumber: config.surahNumber,
+          startAyah: config.startAyah,
+          endAyah: config.endAyah,
+          currentAyah: config.startAyah,
+          verseList: config.verseList ?? [],
+          currentVerseIndex: 0,
+          juzNumber: config.juzNumber ?? null,
+          hizbNumber: config.hizbNumber ?? null,
+          subjectId: config.subjectId ?? null,
+          currentPageNumber: config.pageNumber ?? 1,
+          mushafCurrentAyahKey: null,
+          revealedWordKeys: new Set<string>(),
+          wordsRecited: 0,
+          correctWords: 0,
+          mistakes: [],
+          revealedWords: [],
+          isHidden: config.mode === "memorize",
+        }),
 
-  setCurrentAyah: (ayah) => set({ currentAyah: ayah, revealedWords: [] }),
+      startSessionLegacy: (mode, surah, startAyah, endAyah) =>
+        get().startSession({
+          mode,
+          targetType: "ayah",
+          surahNumber: surah,
+          startAyah,
+          endAyah,
+        }),
 
-  nextAyah: () =>
-    set((state) => ({
-      currentAyah: Math.min(state.currentAyah + 1, state.endAyah),
-      revealedWords: [],
-    })),
+      endSession: () => {
+        const state = get();
+        if (!state.isActive || !state.startTime) return null;
 
-  previousAyah: () =>
-    set((state) => ({
-      currentAyah: Math.max(state.currentAyah - 1, state.startAyah),
-      revealedWords: [],
-    })),
+        const duration = Math.floor((Date.now() - state.startTime) / 1000);
+        const accuracy =
+          state.wordsRecited > 0
+            ? Math.round((state.correctWords / state.wordsRecited) * 100)
+            : 0;
 
-  setRevealMode: (mode) => set({ revealMode: mode }),
+        const versesCompleted =
+          state.verseList.length > 0
+            ? state.currentVerseIndex + 1
+            : state.currentAyah - state.startAyah + 1;
 
-  setHideMode: (mode) => set({ hideMode: mode }),
+        // For mushaf mode, total = completed (user stops when they want).
+        // For juz/hizb/subject with verseList, total = verseList length.
+        // For ayah/surah, total = full ayah range.
+        const totalVerses =
+          state.verseList.length > 0
+            ? state.verseList.length
+            : state.targetType === "mushaf"
+              ? versesCompleted
+              : state.endAyah - state.startAyah + 1;
 
-  setHideDifficulty: (level) => set({ hideDifficulty: level }),
+        const summary: SessionSummary = {
+          mode: state.mode,
+          targetType: state.targetType,
+          duration,
+          surahNumber: state.surahNumber,
+          startAyah: state.startAyah,
+          endAyah: state.endAyah,
+          wordsRecited: state.wordsRecited,
+          correctWords: state.correctWords,
+          accuracy,
+          mistakes: [...state.mistakes],
+          juzNumber: state.juzNumber,
+          hizbNumber: state.hizbNumber,
+          subjectId: state.subjectId,
+          versesCompleted,
+          totalVerses,
+        };
 
-  setMistakeSensitivity: (sensitivity) =>
-    set({ mistakeSensitivity: sensitivity }),
+        set({
+          isActive: false,
+          startTime: null,
+          activeSessionId: null,
+          verseList: [],
+          currentVerseIndex: 0,
+          juzNumber: null,
+          hizbNumber: null,
+          subjectId: null,
+          currentPageNumber: 1,
+          mushafCurrentAyahKey: null,
+          revealedWordKeys: new Set<string>(),
+          wordsRecited: 0,
+          correctWords: 0,
+          mistakes: [],
+          revealedWords: [],
+          audioChunks: [],
+        });
 
-  toggleHidden: () => set((state) => ({ isHidden: !state.isHidden })),
+        return summary;
+      },
 
-  revealWord: (wordIndex) =>
-    set((state) => ({
-      revealedWords: state.revealedWords.includes(wordIndex)
-        ? state.revealedWords
-        : [...state.revealedWords, wordIndex],
-    })),
+      discardSession: () =>
+        set({
+          isActive: false,
+          mode: "memorize",
+          startTime: null,
+          activeSessionId: null,
+          targetType: "ayah",
+          targetId: 0,
+          surahNumber: 1,
+          startAyah: 1,
+          endAyah: 7,
+          currentAyah: 1,
+          verseList: [],
+          currentVerseIndex: 0,
+          juzNumber: null,
+          hizbNumber: null,
+          subjectId: null,
+          currentPageNumber: 1,
+          mushafCurrentAyahKey: null,
+          revealedWordKeys: new Set<string>(),
+          revealMode: "word",
+          hideMode: "full_hide",
+          hideDifficulty: 3,
+          mistakeSensitivity: "normal",
+          isHidden: true,
+          revealedWords: [],
+          wordsRecited: 0,
+          correctWords: 0,
+          mistakes: [],
+          isRecording: false,
+          audioChunks: [],
+        }),
 
-  revealAll: () => set({ isHidden: false }),
+      setActiveSessionId: (id) => set({ activeSessionId: id }),
 
-  resetRevealed: () => set({ revealedWords: [], isHidden: true }),
+      loadFromSnapshot: (dbSession) => {
+        const snap = dbSession.stateSnapshot;
+        set({
+          isActive: true,
+          mode: (dbSession.mode?.toLowerCase() as SessionMode) ?? "memorize",
+          startTime: Date.now(), // restart timer from now
+          activeSessionId: dbSession.id,
+          targetType: (dbSession.targetType as MemorizeMode) ?? "ayah",
+          targetId: snap?.targetId ?? dbSession.surahNumber,
+          surahNumber: dbSession.surahNumber,
+          startAyah: dbSession.startAyah,
+          endAyah: dbSession.endAyah,
+          currentAyah: snap?.currentAyah ?? dbSession.startAyah,
+          verseList: snap?.verseList ?? [],
+          currentVerseIndex: snap?.currentVerseIndex ?? 0,
+          juzNumber: snap?.juzNumber ?? null,
+          hizbNumber: snap?.hizbNumber ?? null,
+          subjectId: snap?.subjectId ?? null,
+          currentPageNumber:
+            snap?.currentPageNumber ?? dbSession.pageNumber ?? 1,
+          mushafCurrentAyahKey: snap?.mushafCurrentAyahKey ?? null,
+          revealedWordKeys: new Set<string>(snap?.revealedWordKeys ?? []),
+          revealMode: snap?.revealMode ?? "word",
+          hideMode: snap?.hideMode ?? "full_hide",
+          hideDifficulty: snap?.hideDifficulty ?? 3,
+          mistakeSensitivity: snap?.mistakeSensitivity ?? "normal",
+          isHidden: snap?.isHidden ?? true,
+          revealedWords: snap?.revealedWords ?? [],
+          wordsRecited: snap?.wordsRecited ?? 0,
+          correctWords: snap?.correctWords ?? 0,
+          mistakes: snap?.mistakes ?? [],
+        });
+      },
 
-  addMistake: (mistake) =>
-    set((state) => ({
-      mistakes: [
-        ...state.mistakes,
-        {
-          ...mistake,
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-        },
-      ],
-    })),
+      setCurrentAyah: (ayah) => set({ currentAyah: ayah, revealedWords: [] }),
 
-  incrementWordsRecited: (correct) =>
-    set((state) => ({
-      wordsRecited: state.wordsRecited + 1,
-      correctWords: correct ? state.correctWords + 1 : state.correctWords,
-    })),
+      nextAyah: () =>
+        set((state) => ({
+          currentAyah: Math.min(state.currentAyah + 1, state.endAyah),
+          revealedWords: [],
+        })),
 
-  startRecording: () => set({ isRecording: true }),
+      previousAyah: () =>
+        set((state) => ({
+          currentAyah: Math.max(state.currentAyah - 1, state.startAyah),
+          revealedWords: [],
+        })),
 
-  stopRecording: () => set({ isRecording: false }),
+      nextVerse: () =>
+        set((state) => {
+          if (state.verseList.length === 0) {
+            // Fallback to nextAyah behavior
+            return {
+              currentAyah: Math.min(state.currentAyah + 1, state.endAyah),
+              revealedWords: [],
+            };
+          }
+          const nextIndex = Math.min(
+            state.currentVerseIndex + 1,
+            state.verseList.length - 1
+          );
+          const nextVerse = state.verseList[nextIndex];
+          return {
+            currentVerseIndex: nextIndex,
+            surahNumber: nextVerse.surahNumber,
+            currentAyah: nextVerse.ayahNumber,
+            revealedWords: [],
+          };
+        }),
 
-  addAudioChunk: (chunk) =>
-    set((state) => ({ audioChunks: [...state.audioChunks, chunk] })),
+      previousVerse: () =>
+        set((state) => {
+          if (state.verseList.length === 0) {
+            return {
+              currentAyah: Math.max(state.currentAyah - 1, state.startAyah),
+              revealedWords: [],
+            };
+          }
+          const prevIndex = Math.max(state.currentVerseIndex - 1, 0);
+          const prevVerse = state.verseList[prevIndex];
+          return {
+            currentVerseIndex: prevIndex,
+            surahNumber: prevVerse.surahNumber,
+            currentAyah: prevVerse.ayahNumber,
+            revealedWords: [],
+          };
+        }),
 
-  clearAudioChunks: () => set({ audioChunks: [] }),
-}));
+      setRevealMode: (mode) => set({ revealMode: mode }),
+
+      setHideMode: (mode) => set({ hideMode: mode }),
+
+      setHideDifficulty: (level) => set({ hideDifficulty: level }),
+
+      setMistakeSensitivity: (sensitivity) =>
+        set({ mistakeSensitivity: sensitivity }),
+
+      toggleHidden: () => set((state) => ({ isHidden: !state.isHidden })),
+
+      revealWord: (wordIndex) =>
+        set((state) => ({
+          revealedWords: state.revealedWords.includes(wordIndex)
+            ? state.revealedWords
+            : [...state.revealedWords, wordIndex],
+        })),
+
+      revealAll: () => set({ isHidden: false }),
+
+      resetRevealed: () => set({ revealedWords: [], isHidden: true }),
+
+      addMistake: (mistake) =>
+        set((state) => ({
+          mistakes: [
+            ...state.mistakes,
+            {
+              ...mistake,
+              id: crypto.randomUUID(),
+              timestamp: Date.now(),
+            },
+          ],
+        })),
+
+      incrementWordsRecited: (correct) =>
+        set((state) => ({
+          wordsRecited: state.wordsRecited + 1,
+          correctWords: correct ? state.correctWords + 1 : state.correctWords,
+        })),
+
+      // Mushaf mode actions
+      setCurrentPageNumber: (page) => set({ currentPageNumber: page }),
+
+      setMushafCurrentAyahKey: (key) => set({ mushafCurrentAyahKey: key }),
+
+      revealWordKey: (wordKey) =>
+        set((state) => {
+          const next = new Set(state.revealedWordKeys);
+          next.add(wordKey);
+          return { revealedWordKeys: next };
+        }),
+
+      resetRevealedWordKeys: () => set({ revealedWordKeys: new Set<string>() }),
+
+      startRecording: () => set({ isRecording: true }),
+
+      stopRecording: () => set({ isRecording: false }),
+
+      addAudioChunk: (chunk) =>
+        set((state) => ({ audioChunks: [...state.audioChunks, chunk] })),
+
+      clearAudioChunks: () => set({ audioChunks: [] }),
+    }),
+    {
+      name: "session-storage",
+      partialize: (state) => ({
+        isActive: state.isActive,
+        mode: state.mode,
+        startTime: state.startTime,
+        activeSessionId: state.activeSessionId,
+        targetType: state.targetType,
+        targetId: state.targetId,
+        surahNumber: state.surahNumber,
+        startAyah: state.startAyah,
+        endAyah: state.endAyah,
+        currentAyah: state.currentAyah,
+        verseList: state.verseList,
+        currentVerseIndex: state.currentVerseIndex,
+        juzNumber: state.juzNumber,
+        hizbNumber: state.hizbNumber,
+        subjectId: state.subjectId,
+        currentPageNumber: state.currentPageNumber,
+        mushafCurrentAyahKey: state.mushafCurrentAyahKey,
+        revealedWordKeys: Array.from(state.revealedWordKeys),
+        revealMode: state.revealMode,
+        hideMode: state.hideMode,
+        hideDifficulty: state.hideDifficulty,
+        mistakeSensitivity: state.mistakeSensitivity,
+        isHidden: state.isHidden,
+        revealedWords: state.revealedWords,
+        wordsRecited: state.wordsRecited,
+        correctWords: state.correctWords,
+        mistakes: state.mistakes,
+      }),
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as Record<string, unknown>),
+        // Rehydrate Set from persisted array
+        revealedWordKeys: new Set<string>(
+          ((persisted as Record<string, unknown>)
+            ?.revealedWordKeys as string[]) ?? []
+        ),
+        // Hardware state — always reset
+        isRecording: false,
+        audioChunks: [],
+      }),
+    }
+  )
+);

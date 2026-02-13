@@ -20,7 +20,7 @@ export default function ChallengesPage() {
     useChallengeHistory();
 
   return (
-    <div className="container max-w-3xl mx-auto px-4 py-8 space-y-8">
+    <div className="ambient-blue max-w-6xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#059669]/10 dark:bg-[#00E5A0]/10 flex items-center justify-center">

@@ -1,10 +1,24 @@
+import "dotenv/config";
+
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
 
+import { createSearchIndex } from "./seed-data/create-search-index";
+import { seedAyahs } from "./seed-data/seed-ayahs";
+import { seedJuz } from "./seed-data/seed-juz";
+import { seedPageLayouts } from "./seed-data/seed-page-layouts";
+import { seedReciters } from "./seed-data/seed-reciters";
+import { seedSimilarVerses } from "./seed-data/seed-similar-verses";
+import { seedSurahs } from "./seed-data/seed-surahs";
+import { seedTranslations } from "./seed-data/seed-translations";
+import { seedWords } from "./seed-data/seed-words";
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+
+// ===== Badge Data (existing) =====
 
 const badges = [
   {
@@ -129,9 +143,8 @@ const badges = [
   },
 ];
 
-async function main() {
+async function seedBadges() {
   console.log("Seeding badges...");
-
   for (const badge of badges) {
     await prisma.badge.upsert({
       where: { code: badge.code },
@@ -144,10 +157,84 @@ async function main() {
       },
       create: badge,
     });
-    console.log(`  ✓ ${badge.name}`);
+  }
+  console.log(`  ✓ ${badges.length} badges seeded.`);
+}
+
+// ===== Main Orchestrator =====
+
+async function main() {
+  const args = process.argv.slice(2);
+  const startTime = Date.now();
+
+  console.log("╔══════════════════════════════════════╗");
+  console.log("║  QuranMemorizer 2.0 — Database Seed  ║");
+  console.log("╚══════════════════════════════════════╝\n");
+
+  if (args.includes("--quick")) {
+    // Quick seed: static data only (no network calls)
+    console.log("Mode: QUICK (static data only)\n");
+    await seedJuz(prisma);
+    await seedReciters(prisma);
+    await seedBadges();
+  } else if (args.includes("--ayahs")) {
+    // Ayahs only
+    console.log("Mode: AYAHS ONLY\n");
+    await seedSurahs(prisma); // Required dependency
+    await seedAyahs(prisma);
+  } else if (args.includes("--layouts")) {
+    // Page layouts only
+    console.log("Mode: LAYOUTS ONLY\n");
+    await seedPageLayouts(prisma);
+  } else if (args.includes("--words")) {
+    // Words only
+    console.log("Mode: WORDS ONLY\n");
+    await seedWords(prisma);
+  } else if (args.includes("--translations")) {
+    // Translations only
+    console.log("Mode: TRANSLATIONS ONLY\n");
+    await seedTranslations(prisma);
+  } else if (args.includes("--similar")) {
+    // Similar verse pairs only (computational, no API)
+    console.log("Mode: SIMILAR VERSES ONLY\n");
+    await seedSimilarVerses(prisma);
+  } else if (args.includes("--search-index")) {
+    // Search index only
+    console.log("Mode: SEARCH INDEX ONLY\n");
+    await createSearchIndex(pool);
+  } else {
+    // Full seed
+    console.log("Mode: FULL SEED\n");
+
+    // Phase 1: Static data (instant)
+    await seedJuz(prisma);
+    await seedReciters(prisma);
+    await seedBadges();
+
+    // Phase 2: Surahs (1 API call)
+    await seedSurahs(prisma);
+
+    // Phase 3: Ayahs (114 API calls, 5 concurrent)
+    await seedAyahs(prisma);
+
+    // Phase 4: Page layouts (604 GitHub fetches, 10 concurrent)
+    await seedPageLayouts(prisma);
+
+    // Phase 5: Words (~77K from quran.com, 114 API calls)
+    await seedWords(prisma);
+
+    // Phase 6: Translations (editions + 3 popular texts)
+    await seedTranslations(prisma);
+
+    // Phase 7: Similar verse pairs (computational)
+    await seedSimilarVerses(prisma);
+
+    // Phase 8: Search index (PostgreSQL GIN)
+    await createSearchIndex(pool);
   }
 
-  console.log(`\nSeeded ${badges.length} badges successfully.`);
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`\nSeed completed in ${elapsed}s.`);
 }
 
 main()

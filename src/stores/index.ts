@@ -6,7 +6,13 @@ export { useUserStore } from "./userStore";
 export { useGamificationStore } from "./gamificationStore";
 
 // Export types
-export type { Surah, Ayah, MushafEdition, ViewMode } from "./quranStore";
+export type {
+  Surah,
+  Ayah,
+  MushafEdition,
+  ViewMode,
+  MemorizeMode,
+} from "./quranStore";
 
 export type { RepeatMode, Reciter } from "./audioStore";
 

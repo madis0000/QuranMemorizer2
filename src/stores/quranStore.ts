@@ -29,6 +29,13 @@ export type MushafEdition =
   | "digital_khatt";
 
 export type ViewMode = "mushaf" | "adaptive" | "split";
+export type MemorizeMode =
+  | "mushaf"
+  | "ayah"
+  | "surah"
+  | "juz"
+  | "hizb"
+  | "subject";
 
 interface QuranState {
   // Current position
@@ -45,6 +52,9 @@ interface QuranState {
   showTransliteration: boolean;
   translationLanguage: string;
   fontSize: number;
+
+  // Memorize mode (6 modes)
+  memorizeMode: MemorizeMode;
 
   // Reading progress
   lastReadPosition: {
@@ -64,6 +74,7 @@ interface QuranState {
   toggleTransliteration: () => void;
   setTranslationLanguage: (lang: string) => void;
   setFontSize: (size: number) => void;
+  setMemorizeMode: (mode: MemorizeMode) => void;
   saveReadingPosition: () => void;
 }
 
@@ -83,6 +94,7 @@ export const useQuranStore = create<QuranState>()(
       showTransliteration: false,
       translationLanguage: "en",
       fontSize: 24,
+      memorizeMode: "ayah",
 
       lastReadPosition: null,
 
@@ -110,6 +122,8 @@ export const useQuranStore = create<QuranState>()(
       setFontSize: (size) =>
         set({ fontSize: Math.max(16, Math.min(48, size)) }),
 
+      setMemorizeMode: (mode) => set({ memorizeMode: mode }),
+
       saveReadingPosition: () => {
         const state = get();
         set({
@@ -132,6 +146,7 @@ export const useQuranStore = create<QuranState>()(
         showTransliteration: state.showTransliteration,
         translationLanguage: state.translationLanguage,
         fontSize: state.fontSize,
+        memorizeMode: state.memorizeMode,
         lastReadPosition: state.lastReadPosition,
       }),
     }

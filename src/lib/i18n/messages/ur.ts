@@ -7,6 +7,14 @@ const ur: Record<string, string> = {
   "nav.progress": "پیشرفت",
   "nav.settings": "ترتیبات",
   "nav.circles": "حلقے",
+  "nav.review": "مراجعہ",
+  "nav.garden": "باغ",
+  "nav.challenges": "چیلنجز",
+  "nav.similar": "مشابہ آیات",
+  "nav.achievements": "کامیابیاں",
+  "nav.tajweed": "تجوید",
+  "nav.sessions": "سیشنز",
+  "nav.more": "مزید",
 
   // Auth
   "auth.login": "سائن ان",
@@ -120,12 +128,6 @@ const ur: Record<string, string> = {
   "onboarding.summary": "آپ تیار ہیں!",
   "onboarding.summary_desc":
     "آپ کی ترجیحات محفوظ ہو گئی ہیں۔ آپ انہیں کسی بھی وقت ترتیبات سے تبدیل کر سکتے ہیں۔",
-
-  // Navigation (new)
-  "nav.review": "مراجعہ",
-  "nav.garden": "باغ",
-  "nav.challenges": "چیلنجز",
-  "nav.similar": "مشابہ آیات",
 
   // Review / SRS
   "review.title": "وقفے وقفے سے مراجعہ",

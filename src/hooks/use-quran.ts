@@ -3,8 +3,13 @@
 /**
  * Quran Data Hooks
  *
- * React Query hooks for fetching Quran data with offline-first support.
- * Data is cached in React Query memory and persisted to IndexedDB.
+ * React Query hooks for fetching Quran data with three-tier fallback:
+ *   1. Internal API (PostgreSQL + Redis) — primary, works in Docker
+ *   2. IndexedDB — offline fallback
+ *   3. External API (alquran.cloud) — last resort
+ *
+ * After a successful fetch from any source, data is background-saved
+ * to IndexedDB for offline use.
  */
 import type { Ayah, Reciter, Surah, Translation } from "@/types/quran";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +26,14 @@ import {
   POPULAR_RECITERS,
   searchQuran,
 } from "@/lib/quran/api";
+import {
+  fetchSurahInternal,
+  fetchSurahsInternal,
+  fetchTranslationInternal,
+  fetchTranslationsListInternal,
+  fetchWordsInternal,
+  searchQuranInternal,
+} from "@/lib/quran/api-internal";
 import {
   deleteBookmark,
   getAllSurahs,
@@ -63,32 +76,47 @@ export const quranKeys = {
   offlineStats: () => [...quranKeys.all, "offlineStats"] as const,
 };
 
+// ===== Helper: background save to IndexedDB =====
+
+function backgroundSave(fn: () => Promise<void>): void {
+  fn().catch(() => {
+    // Silently ignore IndexedDB save errors (e.g., in Docker/SSR)
+  });
+}
+
 // ===== Surah Hooks =====
 
 /**
- * Fetch all surahs with offline-first support
+ * Fetch all surahs: Internal API → IndexedDB → External API
  */
 export function useSurahs() {
   return useQuery({
     queryKey: quranKeys.surahs(),
     queryFn: async (): Promise<Surah[]> => {
-      // Try offline first
+      // 1. Try internal API (PostgreSQL)
+      try {
+        const surahs = await fetchSurahsInternal();
+        if (surahs.length === 114) {
+          backgroundSave(() => saveSurahs(surahs));
+          return surahs;
+        }
+      } catch {
+        // Internal API unavailable, fall through
+      }
+
+      // 2. Try IndexedDB (offline)
       try {
         const offlineSurahs = await getAllSurahs();
         if (offlineSurahs.length === 114) {
           return offlineSurahs;
         }
       } catch {
-        // Continue to fetch online
+        // IndexedDB unavailable
       }
 
-      // Fetch from API and cache
+      // 3. External API (last resort)
       const surahs = await fetchAllSurahs();
-      try {
-        await saveSurahs(surahs);
-      } catch {
-        // Ignore cache errors
-      }
+      backgroundSave(() => saveSurahs(surahs));
       return surahs;
     },
     staleTime: Infinity, // Surah list never changes
@@ -97,13 +125,24 @@ export function useSurahs() {
 }
 
 /**
- * Fetch a single surah with its ayahs
+ * Fetch a single surah with its ayahs: Internal API → IndexedDB → External API
  */
 export function useSurah(surahNumber: number) {
   return useQuery({
     queryKey: quranKeys.surah(surahNumber),
     queryFn: async () => {
-      // Try offline first
+      // 1. Try internal API
+      try {
+        const data = await fetchSurahInternal(surahNumber);
+        if (data.ayahs.length > 0) {
+          backgroundSave(() => saveAyahs(data.ayahs));
+          return data;
+        }
+      } catch {
+        // Fall through
+      }
+
+      // 2. Try IndexedDB
       try {
         const offlineSurah = await getSurah(surahNumber);
         const offlineAyahs = await getAyahsBySurah(surahNumber);
@@ -111,16 +150,12 @@ export function useSurah(surahNumber: number) {
           return { surah: offlineSurah, ayahs: offlineAyahs };
         }
       } catch {
-        // Continue to fetch online
+        // Fall through
       }
 
-      // Fetch from API and cache
+      // 3. External API
       const { surah, ayahs } = await fetchSurah(surahNumber);
-      try {
-        await saveAyahs(ayahs);
-      } catch {
-        // Ignore cache errors
-      }
+      backgroundSave(() => saveAyahs(ayahs));
       return { surah, ayahs };
     },
     staleTime: Infinity,
@@ -131,29 +166,36 @@ export function useSurah(surahNumber: number) {
 // ===== Ayah Hooks =====
 
 /**
- * Fetch ayahs for a surah
+ * Fetch ayahs for a surah: Internal API → IndexedDB → External API
  */
 export function useAyahs(surahNumber: number) {
   return useQuery({
     queryKey: quranKeys.ayahs(surahNumber),
     queryFn: async (): Promise<Ayah[]> => {
-      // Try offline first
+      // 1. Try internal API
+      try {
+        const data = await fetchSurahInternal(surahNumber);
+        if (data.ayahs.length > 0) {
+          backgroundSave(() => saveAyahs(data.ayahs));
+          return data.ayahs;
+        }
+      } catch {
+        // Fall through
+      }
+
+      // 2. Try IndexedDB
       try {
         const offlineAyahs = await getAyahsBySurah(surahNumber);
         if (offlineAyahs.length > 0) {
           return offlineAyahs;
         }
       } catch {
-        // Continue to fetch online
+        // Fall through
       }
 
-      // Fetch from API
+      // 3. External API
       const { ayahs } = await fetchSurah(surahNumber);
-      try {
-        await saveAyahs(ayahs);
-      } catch {
-        // Ignore cache errors
-      }
+      backgroundSave(() => saveAyahs(ayahs));
       return ayahs;
     },
     staleTime: Infinity,
@@ -186,12 +228,23 @@ export function useAyah(surahNumber: number, ayahNumber: number) {
 }
 
 /**
- * Fetch words for an ayah (word-by-word data)
+ * Fetch words for an ayah: Internal API → External API (quran.com)
  */
 export function useAyahWords(surahNumber: number, ayahNumber: number) {
   return useQuery({
     queryKey: quranKeys.words(surahNumber, ayahNumber),
-    queryFn: () => fetchWordsForAyah(surahNumber, ayahNumber),
+    queryFn: async () => {
+      // 1. Try internal API (PostgreSQL)
+      try {
+        const words = await fetchWordsInternal(surahNumber, ayahNumber);
+        if (words.length > 0) return words;
+      } catch {
+        // Fall through
+      }
+
+      // 2. External API (quran.com)
+      return fetchWordsForAyah(surahNumber, ayahNumber);
+    },
     staleTime: Infinity,
     enabled: surahNumber >= 1 && surahNumber <= 114 && ayahNumber >= 1,
   });
@@ -250,23 +303,45 @@ export function useJuz(juzNumber: number) {
 // ===== Translation Hooks =====
 
 /**
- * Fetch available translations
+ * Fetch available translations: Internal API → External API
  */
 export function useAvailableTranslations() {
   return useQuery({
     queryKey: quranKeys.translations(),
-    queryFn: fetchAvailableTranslations,
+    queryFn: async () => {
+      // 1. Try internal API (PostgreSQL)
+      try {
+        const editions = await fetchTranslationsListInternal();
+        if (editions.length > 0) return editions;
+      } catch {
+        // Fall through
+      }
+
+      // 2. External API (alquran.cloud)
+      return fetchAvailableTranslations();
+    },
     staleTime: 24 * 60 * 60 * 1000, // 24 hours
   });
 }
 
 /**
- * Fetch translation for a surah
+ * Fetch translation for a surah: Internal API → External API
  */
 export function useTranslation(translationId: string, surahNumber: number) {
   return useQuery({
     queryKey: quranKeys.translation(translationId, surahNumber),
-    queryFn: () => fetchTranslation(surahNumber, translationId),
+    queryFn: async () => {
+      // 1. Try internal API (PostgreSQL)
+      try {
+        const data = await fetchTranslationInternal(translationId, surahNumber);
+        if (data.length > 0) return data;
+      } catch {
+        // Fall through
+      }
+
+      // 2. External API (alquran.cloud)
+      return fetchTranslation(surahNumber, translationId);
+    },
     staleTime: Infinity,
     enabled: !!translationId && surahNumber >= 1 && surahNumber <= 114,
   });
@@ -284,7 +359,7 @@ export function useReciters(): Reciter[] {
 // ===== Search Hooks =====
 
 /**
- * Search Quran with offline fallback
+ * Search Quran: Internal API → External API → IndexedDB offline
  */
 export function useSearch(query: string, enabled: boolean = true) {
   return useQuery({
@@ -292,13 +367,23 @@ export function useSearch(query: string, enabled: boolean = true) {
     queryFn: async () => {
       if (!query || query.length < 2) return [];
 
-      // Try online search first
+      // 1. Try internal API (PostgreSQL full-text search)
+      try {
+        const results = await searchQuranInternal(query);
+        if (results.length > 0) return results;
+      } catch {
+        // Fall through
+      }
+
+      // 2. Try external API (quran.com)
       try {
         return await searchQuran(query);
       } catch {
-        // Fall back to offline search
-        return searchOffline(query);
+        // Fall through
       }
+
+      // 3. Offline search (IndexedDB)
+      return searchOffline(query);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: enabled && query.length >= 2,
@@ -423,7 +508,13 @@ export function usePrefetchSurah() {
   return (surahNumber: number) => {
     queryClient.prefetchQuery({
       queryKey: quranKeys.surah(surahNumber),
-      queryFn: () => fetchSurah(surahNumber),
+      queryFn: async () => {
+        try {
+          return await fetchSurahInternal(surahNumber);
+        } catch {
+          return fetchSurah(surahNumber);
+        }
+      },
       staleTime: Infinity,
     });
   };

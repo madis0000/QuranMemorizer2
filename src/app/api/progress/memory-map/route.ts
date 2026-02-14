@@ -3,10 +3,38 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getCached } from "@/lib/cache";
 import { prisma } from "@/lib/db";
-import {
-  computeMasteryLevel,
-  type PageMasteryData,
-} from "@/components/progress/PageMasteryGrid";
+
+/** Server-side types (can't import from "use client" module) */
+type MasteryLevel =
+  | "not_started"
+  | "weak"
+  | "learning"
+  | "moderate"
+  | "strong"
+  | "mastered";
+interface PageMasteryData {
+  page: number;
+  level: MasteryLevel;
+  accuracy: number;
+  sessionsCount: number;
+  lastPracticed: string | null;
+  retention: number;
+}
+
+/** Server-side copy of computeMasteryLevel (can't import from "use client" module) */
+function computeMasteryLevel(
+  accuracy: number,
+  sessionsCount: number,
+  retention: number
+): MasteryLevel {
+  if (sessionsCount === 0) return "not_started";
+  const score = accuracy * 0.5 + retention * 0.5;
+  if (score >= 95) return "mastered";
+  if (score >= 80) return "strong";
+  if (score >= 60) return "moderate";
+  if (score >= 40) return "learning";
+  return "weak";
+}
 
 /**
  * GET /api/progress/memory-map
@@ -54,14 +82,8 @@ async function computeMemoryMap(userId: string): Promise<PageMasteryData[]> {
     },
   });
 
-  // 2. Get page numbers for each card's ayah from QuranAyah table
+  // 2. Get all ayah→page mappings (only 6236 rows — small table, avoids massive OR clause)
   const ayahPages = await prisma.quranAyah.findMany({
-    where: {
-      OR: cards.map((c) => ({
-        surahNumber: c.surahNumber,
-        numberInSurah: c.ayahNumber,
-      })),
-    },
     select: {
       surahNumber: true,
       numberInSurah: true,

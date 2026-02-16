@@ -34,6 +34,17 @@ export interface VerseRef {
   ayahNumber: number;
 }
 
+export interface AyahAttempt {
+  surahNumber: number;
+  ayahNumber: number;
+  attempts: number;
+  bestAccuracy: number;
+  lastAccuracy: number;
+  totalTime: number; // ms spent on this ayah
+  fsrsRating?: 1 | 2 | 3 | 4; // user's self-rating (Again/Hard/Good/Easy)
+  completedAt?: number;
+}
+
 export interface StartSessionConfig {
   mode: SessionMode;
   targetType: MemorizeMode;
@@ -125,6 +136,20 @@ interface SessionState {
   correctWords: number;
   mistakes: Mistake[];
 
+  // Per-ayah tracking (key: "surah:ayah")
+  ayahHistory: Record<string, AyahAttempt>;
+
+  // Combo system
+  combo: number;
+  maxCombo: number;
+
+  // Focus mode
+  isFocusMode: boolean;
+
+  // Bookmarked/skipped ayahs
+  bookmarkedAyahs: VerseRef[];
+  skippedAyahs: VerseRef[];
+
   // Recording
   isRecording: boolean;
   audioChunks: Blob[];
@@ -161,6 +186,16 @@ interface SessionState {
   addMistake: (mistake: Omit<Mistake, "id" | "timestamp">) => void;
   incrementWordsRecited: (correct: boolean) => void;
 
+  // Per-ayah tracking & combo
+  recordAyahAttempt: (key: string, accuracy: number, timeMs: number) => void;
+  incrementCombo: () => void;
+  resetCombo: () => void;
+  setFocusMode: (on: boolean) => void;
+  bookmarkCurrentAyah: () => void;
+  skipCurrentAyah: () => void;
+  navigateToVerse: (surah: number, ayah: number) => void;
+  setFSRSRating: (key: string, rating: 1 | 2 | 3 | 4) => void;
+
   // Mushaf mode actions
   setCurrentPageNumber: (page: number) => void;
   setMushafCurrentAyahKey: (key: string | null) => void;
@@ -189,6 +224,12 @@ export interface SessionSummary {
   subjectId: string | null;
   versesCompleted: number;
   totalVerses: number;
+  // Enhanced summary fields
+  ayahHistory: Record<string, AyahAttempt>;
+  maxCombo: number;
+  weakAyahs: AyahAttempt[]; // accuracy < 70%
+  perfectAyahs: AyahAttempt[]; // accuracy >= 95%
+  bookmarkedAyahs: VerseRef[];
 }
 
 export const useSessionStore = create<SessionState>()(
@@ -230,6 +271,13 @@ export const useSessionStore = create<SessionState>()(
       correctWords: 0,
       mistakes: [],
 
+      ayahHistory: {},
+      combo: 0,
+      maxCombo: 0,
+      isFocusMode: false,
+      bookmarkedAyahs: [],
+      skippedAyahs: [],
+
       isRecording: false,
       audioChunks: [],
 
@@ -263,6 +311,12 @@ export const useSessionStore = create<SessionState>()(
           mistakes: [],
           revealedWords: [],
           isHidden: config.mode === "memorize",
+          ayahHistory: {},
+          combo: 0,
+          maxCombo: 0,
+          isFocusMode: false,
+          bookmarkedAyahs: [],
+          skippedAyahs: [],
         }),
 
       startSessionLegacy: (mode, surah, startAyah, endAyah) =>
@@ -299,6 +353,11 @@ export const useSessionStore = create<SessionState>()(
               ? versesCompleted
               : state.endAyah - state.startAyah + 1;
 
+        const ayahHistoryCopy = { ...state.ayahHistory };
+        const allAttempts = Object.values(ayahHistoryCopy);
+        const weakAyahs = allAttempts.filter((a) => a.bestAccuracy < 70);
+        const perfectAyahs = allAttempts.filter((a) => a.bestAccuracy >= 95);
+
         const summary: SessionSummary = {
           mode: state.mode,
           targetType: state.targetType,
@@ -315,6 +374,11 @@ export const useSessionStore = create<SessionState>()(
           subjectId: state.subjectId,
           versesCompleted,
           totalVerses,
+          ayahHistory: ayahHistoryCopy,
+          maxCombo: state.maxCombo,
+          weakAyahs,
+          perfectAyahs,
+          bookmarkedAyahs: [...state.bookmarkedAyahs],
         };
 
         set({
@@ -334,6 +398,12 @@ export const useSessionStore = create<SessionState>()(
           mistakes: [],
           revealedWords: [],
           audioChunks: [],
+          ayahHistory: {},
+          combo: 0,
+          maxCombo: 0,
+          isFocusMode: false,
+          bookmarkedAyahs: [],
+          skippedAyahs: [],
         });
 
         return summary;
@@ -370,6 +440,12 @@ export const useSessionStore = create<SessionState>()(
           mistakes: [],
           isRecording: false,
           audioChunks: [],
+          ayahHistory: {},
+          combo: 0,
+          maxCombo: 0,
+          isFocusMode: false,
+          bookmarkedAyahs: [],
+          skippedAyahs: [],
         }),
 
       setActiveSessionId: (id) => set({ activeSessionId: id }),
@@ -501,6 +577,109 @@ export const useSessionStore = create<SessionState>()(
           wordsRecited: state.wordsRecited + 1,
           correctWords: correct ? state.correctWords + 1 : state.correctWords,
         })),
+
+      // Per-ayah tracking & combo
+      recordAyahAttempt: (key, accuracy, timeMs) =>
+        set((state) => {
+          const existing = state.ayahHistory[key];
+          const attempt: AyahAttempt = existing
+            ? {
+                ...existing,
+                attempts: existing.attempts + 1,
+                bestAccuracy: Math.max(existing.bestAccuracy, accuracy),
+                lastAccuracy: accuracy,
+                totalTime: existing.totalTime + timeMs,
+                completedAt: Date.now(),
+              }
+            : {
+                surahNumber: parseInt(key.split(":")[0]) || 0,
+                ayahNumber: parseInt(key.split(":")[1]) || 0,
+                attempts: 1,
+                bestAccuracy: accuracy,
+                lastAccuracy: accuracy,
+                totalTime: timeMs,
+                completedAt: Date.now(),
+              };
+          return {
+            ayahHistory: { ...state.ayahHistory, [key]: attempt },
+          };
+        }),
+
+      incrementCombo: () =>
+        set((state) => {
+          const newCombo = state.combo + 1;
+          return {
+            combo: newCombo,
+            maxCombo: Math.max(state.maxCombo, newCombo),
+          };
+        }),
+
+      resetCombo: () => set({ combo: 0 }),
+
+      setFocusMode: (on) => set({ isFocusMode: on }),
+
+      bookmarkCurrentAyah: () =>
+        set((state) => {
+          const ref = {
+            surahNumber: state.surahNumber,
+            ayahNumber: state.currentAyah,
+          };
+          const exists = state.bookmarkedAyahs.some(
+            (b) =>
+              b.surahNumber === ref.surahNumber &&
+              b.ayahNumber === ref.ayahNumber
+          );
+          if (exists) return state;
+          return { bookmarkedAyahs: [...state.bookmarkedAyahs, ref] };
+        }),
+
+      skipCurrentAyah: () =>
+        set((state) => {
+          const ref = {
+            surahNumber: state.surahNumber,
+            ayahNumber: state.currentAyah,
+          };
+          const exists = state.skippedAyahs.some(
+            (s) =>
+              s.surahNumber === ref.surahNumber &&
+              s.ayahNumber === ref.ayahNumber
+          );
+          if (exists) return state;
+          return { skippedAyahs: [...state.skippedAyahs, ref] };
+        }),
+
+      navigateToVerse: (surah, ayah) =>
+        set((state) => {
+          // Mid-session jump to any verse
+          const newState: Partial<SessionState> = {
+            surahNumber: surah,
+            currentAyah: ayah,
+            revealedWords: [],
+            mushafCurrentAyahKey: null,
+            revealedWordKeys: new Set<string>(),
+          };
+          // Extend range if outside current bounds
+          if (surah !== state.surahNumber) {
+            newState.startAyah = 1;
+            newState.endAyah = 999; // Will be clamped by actual surah length
+          } else {
+            if (ayah < state.startAyah) newState.startAyah = ayah;
+            if (ayah > state.endAyah) newState.endAyah = ayah;
+          }
+          return newState;
+        }),
+
+      setFSRSRating: (key, rating) =>
+        set((state) => {
+          const existing = state.ayahHistory[key];
+          if (!existing) return state;
+          return {
+            ayahHistory: {
+              ...state.ayahHistory,
+              [key]: { ...existing, fsrsRating: rating },
+            },
+          };
+        }),
 
       // Mushaf mode actions
       setCurrentPageNumber: (page) => set({ currentPageNumber: page }),

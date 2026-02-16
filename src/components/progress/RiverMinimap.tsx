@@ -6,55 +6,70 @@ import type { SurahTree } from "@/lib/gamification/surah-trees";
 
 import {
   computeNodeState,
+  getRiverCenterXAtY,
   NODE_STATE_COLORS,
-  ROAD_WIDTH,
+  RIVER_SVG_WIDTH,
   SVG_HEIGHT,
   type NodePosition,
-} from "./road-utils";
+} from "./river-utils";
 
-const MINIMAP_WIDTH = 32;
-const MINIMAP_HEIGHT = 200;
+const MINIMAP_WIDTH = 44;
+const MINIMAP_HEIGHT = 220;
 
-interface RoadMinimapProps {
+interface RiverMinimapProps {
   positions: NodePosition[];
   trees: SurahTree[];
   scrollTop: number;
   containerHeight: number;
+  scrollHeight: number;
   onScrollTo: (fraction: number) => void;
 }
 
-export function RoadMinimap({
+export function RiverMinimap({
   positions,
   trees,
   scrollTop,
   containerHeight,
+  scrollHeight,
   onScrollTo,
-}: RoadMinimapProps) {
+}: RiverMinimapProps) {
   const treeMap = useMemo(
     () => new Map(trees.map((t) => [t.surahNumber, t])),
     [trees]
   );
 
-  // Map positions into minimap space
+  // River path in minimap space
+  const miniRiverPath = useMemo(() => {
+    const step = 40;
+    const points: string[] = [];
+    for (let y = 0; y <= SVG_HEIGHT; y += step) {
+      const cx = getRiverCenterXAtY(y);
+      const mx = (cx / RIVER_SVG_WIDTH) * MINIMAP_WIDTH;
+      const my = (y / SVG_HEIGHT) * MINIMAP_HEIGHT;
+      points.push(`${mx.toFixed(1)},${my.toFixed(1)}`);
+    }
+    return `M ${points[0]} L ${points.slice(1).join(" L ")}`;
+  }, []);
+
+  // Node dots
   const dots = useMemo(() => {
     return positions.map((pos) => {
       const tree = treeMap.get(pos.surahNumber);
       const state = tree ? computeNodeState(tree) : "seed";
-      const mxFraction = pos.x / ROAD_WIDTH;
-      const myFraction = pos.y / SVG_HEIGHT;
       return {
-        mx: mxFraction * MINIMAP_WIDTH,
-        my: myFraction * MINIMAP_HEIGHT,
+        mx: (pos.x / RIVER_SVG_WIDTH) * MINIMAP_WIDTH,
+        my: (pos.y / SVG_HEIGHT) * MINIMAP_HEIGHT,
         color: NODE_STATE_COLORS[state].fill,
         surahNumber: pos.surahNumber,
       };
     });
   }, [positions, treeMap]);
 
-  // Viewport indicator
-  const viewportFraction = containerHeight / SVG_HEIGHT;
-  const viewportTop = (scrollTop / SVG_HEIGHT) * MINIMAP_HEIGHT;
-  const viewportHeight = Math.max(viewportFraction * MINIMAP_HEIGHT, 10);
+  // Use pixel scrollHeight (not SVG_HEIGHT) for accurate viewport mapping
+  const effectiveHeight = scrollHeight > 0 ? scrollHeight : SVG_HEIGHT;
+  const viewportFraction = containerHeight / effectiveHeight;
+  const viewportTop = (scrollTop / effectiveHeight) * MINIMAP_HEIGHT;
+  const viewportHeight = Math.max(viewportFraction * MINIMAP_HEIGHT, 12);
 
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -71,6 +86,16 @@ export function RoadMinimap({
         className="cursor-pointer rounded-lg bg-background/80 backdrop-blur-sm border border-border shadow-sm"
         onClick={handleClick}
       >
+        {/* River path */}
+        <path
+          d={miniRiverPath}
+          fill="none"
+          stroke="#06b6d4"
+          strokeWidth={2.5}
+          opacity={0.4}
+          strokeLinecap="round"
+        />
+
         {/* Node dots */}
         {dots.map((d) => (
           <circle
@@ -82,6 +107,7 @@ export function RoadMinimap({
             opacity={0.8}
           />
         ))}
+
         {/* Viewport indicator */}
         <rect
           x={0}
@@ -96,6 +122,28 @@ export function RoadMinimap({
           strokeWidth={0.5}
           strokeOpacity={0.3}
         />
+
+        {/* Current position pulsing dot */}
+        <circle
+          cx={MINIMAP_WIDTH / 2}
+          cy={viewportTop + viewportHeight / 2}
+          r={2.5}
+          fill="#059669"
+          opacity={0.8}
+        >
+          <animate
+            attributeName="r"
+            values="2;3.5;2"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+          <animate
+            attributeName="opacity"
+            values="0.8;0.4;0.8"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+        </circle>
       </svg>
     </div>
   );

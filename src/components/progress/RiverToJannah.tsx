@@ -10,19 +10,25 @@ import { JuzGate } from "./JuzGate";
 import { ParadiseGate } from "./ParadiseGate";
 import {
   computeNodePositions,
+  detectAnimationTier,
   findCurrentProgressIndex,
   JUZ_SURAH_RANGES,
-  NODE_SPACING_Y,
-  ROAD_WIDTH,
+  RIVER_SVG_WIDTH,
   SVG_HEIGHT,
-} from "./road-utils";
-import { RoadBackground } from "./RoadBackground";
-import { RoadMinimap } from "./RoadMinimap";
-import { RoadNode } from "./RoadNode";
-import { RoadPath } from "./RoadPath";
+  type AnimationTier,
+} from "./river-utils";
+import { RiverAnimations } from "./RiverAnimations";
+import { RiverAtmosphere } from "./RiverAtmosphere";
+import { RiverChannel } from "./RiverChannel";
+import { RiverLandscape } from "./RiverLandscape";
+import { RiverMinimap } from "./RiverMinimap";
+import { RiverNode } from "./RiverNode";
 import { SurahPopup } from "./SurahPopup";
 
-// Detect dark mode from document
+// ============================================================
+// Dark mode detection hook
+// ============================================================
+
 function useIsDark(): boolean {
   const [isDark, setIsDark] = useState(false);
   useEffect(() => {
@@ -39,17 +45,23 @@ function useIsDark(): boolean {
   return isDark;
 }
 
-export function RoadToJannah() {
+// ============================================================
+// Main component
+// ============================================================
+
+export function RiverToJannah() {
   const { data, isLoading, error } = useJannati();
   const isDark = useIsDark();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(600);
+  const [scrollHeight, setScrollHeight] = useState(SVG_HEIGHT);
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
+  const [animTier] = useState<AnimationTier>(() => detectAnimationTier());
   const hasScrolledRef = useRef(false);
 
-  const trees: SurahTree[] = data?.trees ?? [];
+  const trees = useMemo<SurahTree[]>(() => data?.trees ?? [], [data?.trees]);
   const gardenStats = data?.gardenStats;
 
   // Pre-compute all 114 node positions
@@ -73,18 +85,19 @@ export function RoadToJannah() {
       juzNumber: number;
       y: number;
       completionPct: number;
+      riverCenterX: number;
     }> = [];
 
     for (let j = 2; j <= 30; j++) {
       const [startSurah] = JUZ_SURAH_RANGES[j - 1];
       const prevJuzEnd = JUZ_SURAH_RANGES[j - 2][1];
 
-      // Position gate between last surah of prev juz and first of this juz
       const posEnd = positions.find((p) => p.surahNumber === prevJuzEnd);
       const posStart = positions.find((p) => p.surahNumber === startSurah);
       if (!posEnd || !posStart) continue;
 
       const gateY = (posEnd.y + posStart.y) / 2;
+      const riverCX = (posEnd.riverCenterX + posStart.riverCenterX) / 2;
 
       // Compute completion of the previous juz
       const [pStart, pEnd] = JUZ_SURAH_RANGES[j - 2];
@@ -100,18 +113,37 @@ export function RoadToJannah() {
       const completionPct =
         totalAyahs > 0 ? Math.round((bloomedAyahs / totalAyahs) * 100) : 0;
 
-      gates.push({ juzNumber: j, y: gateY, completionPct });
+      gates.push({
+        juzNumber: j,
+        y: gateY,
+        completionPct,
+        riverCenterX: riverCX,
+      });
     }
 
     return gates;
   }, [positions, treeMap]);
+
+  // Viewport culling — convert pixel scroll to SVG coordinates
+  // The SVG viewBox height (SVG_HEIGHT) differs from the rendered pixel height,
+  // so we must scale pixel scrollTop into SVG coordinate space for accurate culling.
+  const visibleRange = useMemo(() => {
+    const scale = scrollHeight > 0 ? SVG_HEIGHT / scrollHeight : 1;
+    return {
+      top: scrollTop * scale - 400,
+      bottom: (scrollTop + containerHeight) * scale + 400,
+    };
+  }, [scrollTop, containerHeight, scrollHeight]);
 
   // Auto-scroll to current progress on mount
   useEffect(() => {
     if (trees.length > 0 && !hasScrolledRef.current && scrollRef.current) {
       const currentPos = positions[currentIndex];
       if (currentPos) {
-        const scrollTarget = currentPos.y - scrollRef.current.clientHeight / 2;
+        // Convert SVG coordinates → pixel coordinates for scrollTo
+        const scale = scrollRef.current.scrollHeight / SVG_HEIGHT;
+        const scrollTarget =
+          currentPos.y * scale - scrollRef.current.clientHeight / 2;
         scrollRef.current.scrollTop = Math.max(0, scrollTarget);
         hasScrolledRef.current = true;
       }
@@ -122,6 +154,7 @@ export function RoadToJannah() {
   const handleScroll = useCallback(() => {
     if (scrollRef.current) {
       setScrollTop(scrollRef.current.scrollTop);
+      setScrollHeight(scrollRef.current.scrollHeight);
     }
   }, []);
 
@@ -129,9 +162,11 @@ export function RoadToJannah() {
     const el = scrollRef.current;
     if (!el) return;
     setContainerHeight(el.clientHeight);
+    setScrollHeight(el.scrollHeight);
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setContainerHeight(entry.contentRect.height);
+        if (scrollRef.current) setScrollHeight(scrollRef.current.scrollHeight);
       }
     });
     observer.observe(el);
@@ -141,7 +176,10 @@ export function RoadToJannah() {
   // Minimap scroll-to handler
   const handleMinimapScrollTo = useCallback((fraction: number) => {
     if (scrollRef.current) {
-      const target = fraction * SVG_HEIGHT - scrollRef.current.clientHeight / 2;
+      // fraction is 0-1 of SVG space; convert to pixel space
+      const target =
+        fraction * scrollRef.current.scrollHeight -
+        scrollRef.current.clientHeight / 2;
       scrollRef.current.scrollTo({
         top: Math.max(0, target),
         behavior: "smooth",
@@ -198,7 +236,7 @@ export function RoadToJannah() {
         </div>
       )}
 
-      {/* Scrollable road container */}
+      {/* Scrollable river container — full width */}
       <div className="relative rounded-xl border border-border overflow-hidden bg-card">
         <div
           ref={scrollRef}
@@ -207,17 +245,38 @@ export function RoadToJannah() {
           style={{ height: "70vh", maxHeight: 700 }}
         >
           <svg
-            width={ROAD_WIDTH}
-            height={SVG_HEIGHT}
-            viewBox={`0 0 ${ROAD_WIDTH} ${SVG_HEIGHT}`}
-            className="mx-auto block"
-            style={{ minWidth: 360 }}
+            width="100%"
+            viewBox={`0 0 ${RIVER_SVG_WIDTH} ${SVG_HEIGHT}`}
+            preserveAspectRatio="xMidYMid meet"
+            className="block"
           >
-            {/* Biome backgrounds */}
-            <RoadBackground positions={positions} isDark={isDark} />
+            {/* Layered landscape backgrounds */}
+            <RiverLandscape positions={positions} isDark={isDark} />
 
-            {/* Winding road path */}
-            <RoadPath positions={positions} isDark={isDark} />
+            {/* River channel (water, banks, shimmer, ripples) */}
+            <RiverChannel
+              positions={positions}
+              isDark={isDark}
+              animTier={animTier}
+            />
+
+            {/* Atmospheric effects (clouds, paradise glow) */}
+            {animTier >= 2 && (
+              <RiverAtmosphere
+                positions={positions}
+                isDark={isDark}
+                animTier={animTier}
+              />
+            )}
+
+            {/* Water animations (particles, leaves) */}
+            {animTier >= 2 && (
+              <RiverAnimations
+                positions={positions}
+                isDark={isDark}
+                animTier={animTier}
+              />
+            )}
 
             {/* Paradise Gate at top */}
             <ParadiseGate
@@ -225,7 +284,7 @@ export function RoadToJannah() {
               isDark={isDark}
             />
 
-            {/* Juz gates between zones */}
+            {/* Juz bridges */}
             {juzGates.map((gate) => (
               <JuzGate
                 key={gate.juzNumber}
@@ -233,20 +292,25 @@ export function RoadToJannah() {
                 y={gate.y}
                 completionPct={gate.completionPct}
                 isDark={isDark}
+                riverCenterX={gate.riverCenterX}
               />
             ))}
 
-            {/* Surah nodes */}
+            {/* Surah nodes (garden islands on alternating banks) */}
             {positions.map((pos) => {
               const tree = treeMap.get(pos.surahNumber);
               if (!tree) return null;
+              const inView =
+                pos.y >= visibleRange.top && pos.y <= visibleRange.bottom;
               return (
-                <RoadNode
+                <RiverNode
                   key={pos.surahNumber}
                   tree={tree}
                   x={pos.x}
                   y={pos.y}
+                  bankSide={pos.bankSide}
                   isCurrent={pos.surahNumber === currentIndex + 1}
+                  isSimplified={!inView}
                   onClick={handleNodeClick}
                 />
               );
@@ -255,11 +319,12 @@ export function RoadToJannah() {
         </div>
 
         {/* Minimap */}
-        <RoadMinimap
+        <RiverMinimap
           positions={positions}
           trees={trees}
           scrollTop={scrollTop}
           containerHeight={containerHeight}
+          scrollHeight={scrollHeight}
           onScrollTo={handleMinimapScrollTo}
         />
       </div>

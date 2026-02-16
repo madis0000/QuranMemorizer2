@@ -1,5 +1,9 @@
 /**
- * Road to Jannah — Layout utilities, biome definitions, and positioning math
+ * River to Jannah — Layout utilities, river geometry, biome themes, and positioning math
+ *
+ * The river replaces the road as the central visual metaphor. Nodes sit on
+ * alternating banks of a flowing river that winds from desert (Surah 1) to
+ * paradise (Surah 114).
  */
 
 import type { Season, SurahTree } from "@/lib/gamification/surah-trees";
@@ -8,21 +12,49 @@ import type { Season, SurahTree } from "@/lib/gamification/surah-trees";
 // Constants
 // ============================================================
 
-export const ROAD_WIDTH = 500;
+export const RIVER_SVG_WIDTH = 1200;
 export const NODE_SPACING_Y = 120;
-export const ROAD_PADDING_TOP = 250; // space for Paradise Gate
-export const ROAD_PADDING_BOTTOM = 120;
-export const ROAD_CENTER_X = ROAD_WIDTH / 2;
-export const ROAD_AMPLITUDE = 130; // sine wave amplitude
-export const ROAD_STROKE_WIDTH = 40;
+export const RIVER_PADDING_TOP = 300;
+export const RIVER_PADDING_BOTTOM = 120;
+export const RIVER_CENTER_X = RIVER_SVG_WIDTH / 2;
+export const RIVER_AMPLITUDE = 200;
+export const RIVER_BASE_HALF_WIDTH = 40;
+export const RIVER_NODE_POOL_EXTRA = 18;
+export const NODE_OFFSET_FROM_RIVER = 120;
 
 export const TOTAL_NODES = 114;
 export const SVG_HEIGHT =
-  ROAD_PADDING_TOP + TOTAL_NODES * NODE_SPACING_Y + ROAD_PADDING_BOTTOM;
+  RIVER_PADDING_TOP + TOTAL_NODES * NODE_SPACING_Y + RIVER_PADDING_BOTTOM;
 
-// Node visual sizes
-export const NODE_RADIUS = 22;
-export const NODE_HIT_RADIUS = 30;
+export const NODE_RADIUS = 24;
+export const NODE_HIT_RADIUS = 32;
+
+// ============================================================
+// Types
+// ============================================================
+
+export type NodeState =
+  | "seed"
+  | "sprouting"
+  | "growing"
+  | "blooming"
+  | "mastered"
+  | "wilting";
+
+export type AnimationTier = 1 | 2 | 3 | 4;
+
+export interface NodePosition {
+  x: number;
+  y: number;
+  surahNumber: number;
+  bankSide: "left" | "right";
+  riverCenterX: number;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
 
 // ============================================================
 // Seeded PRNG (deterministic per-node decorations)
@@ -34,16 +66,24 @@ export function seededRandom(seed: number): number {
 }
 
 // ============================================================
-// Node visual states
+// Animation tier detection
 // ============================================================
 
-export type NodeState =
-  | "seed"
-  | "sprouting"
-  | "growing"
-  | "blooming"
-  | "mastered"
-  | "wilting";
+export function detectAnimationTier(): AnimationTier {
+  if (typeof window === "undefined") return 1;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return 1;
+
+  const width = window.innerWidth;
+  const cores = navigator.hardwareConcurrency || 2;
+
+  if (width < 768 || cores <= 2) return 2;
+  if (width < 1280 || cores <= 4) return 3;
+  return 4;
+}
+
+// ============================================================
+// Node visual states
+// ============================================================
 
 export function computeNodeState(tree: SurahTree): NodeState {
   const mastery = tree.trunkMastery;
@@ -70,45 +110,66 @@ export const NODE_STATE_COLORS: Record<
 };
 
 // ============================================================
+// River color palette
+// ============================================================
+
+export const RIVER_COLORS = {
+  deep: "#0e7490",
+  mid: "#06b6d4",
+  shallow: "#22d3ee",
+  shimmer: "#67e8f9",
+  bank: "#8B7355",
+  bankGrass: "#4a8c3f",
+  bankRich: "#2D7B4F",
+};
+
+export const RIVER_COLORS_DARK = {
+  deep: "#164e63",
+  mid: "#0e7490",
+  shallow: "#155e75",
+  shimmer: "#0e7490",
+  bank: "#3d2b1f",
+  bankGrass: "#1a4a1a",
+  bankRich: "#1a3d2a",
+};
+
+// ============================================================
 // Juz → Surah ranges
 // ============================================================
 
 export const JUZ_SURAH_RANGES: [number, number][] = [
-  [1, 2], // Juz 1
-  [2, 2], // Juz 2  (Al-Baqarah cont.)
-  [2, 3], // Juz 3
-  [3, 4], // Juz 4
-  [4, 4], // Juz 5
-  [4, 5], // Juz 6
-  [5, 6], // Juz 7
-  [6, 7], // Juz 8
-  [7, 8], // Juz 9
-  [8, 9], // Juz 10
-  [9, 11], // Juz 11
-  [11, 12], // Juz 12
-  [12, 14], // Juz 13
-  [15, 16], // Juz 14
-  [17, 18], // Juz 15
-  [18, 20], // Juz 16
-  [21, 22], // Juz 17
-  [23, 25], // Juz 18
-  [25, 27], // Juz 19
-  [27, 29], // Juz 20
-  [29, 33], // Juz 21
-  [33, 36], // Juz 22
-  [36, 39], // Juz 23
-  [39, 41], // Juz 24
-  [41, 46], // Juz 25
-  [46, 51], // Juz 26
-  [51, 57], // Juz 27
-  [58, 66], // Juz 28
-  [67, 77], // Juz 29
-  [78, 114], // Juz 30
+  [1, 2],
+  [2, 2],
+  [2, 3],
+  [3, 4],
+  [4, 4],
+  [4, 5],
+  [5, 6],
+  [6, 7],
+  [7, 8],
+  [8, 9],
+  [9, 11],
+  [11, 12],
+  [12, 14],
+  [15, 16],
+  [17, 18],
+  [18, 20],
+  [21, 22],
+  [23, 25],
+  [25, 27],
+  [27, 29],
+  [29, 33],
+  [33, 36],
+  [36, 39],
+  [39, 41],
+  [41, 46],
+  [46, 51],
+  [51, 57],
+  [58, 66],
+  [67, 77],
+  [78, 114],
 ];
 
-/**
- * Get the primary juz for a surah (first juz that contains it).
- */
 export function getJuzForSurah(surahNumber: number): number {
   for (let j = 0; j < JUZ_SURAH_RANGES.length; j++) {
     const [start, end] = JUZ_SURAH_RANGES[j];
@@ -118,14 +179,16 @@ export function getJuzForSurah(surahNumber: number): number {
 }
 
 // ============================================================
-// Biome themes (30 zones progressing desert → paradise)
+// Biome themes (30 zones — desert → paradise)
 // ============================================================
 
 export interface BiomeTheme {
   name: string;
-  bgGradient: [string, string]; // top, bottom colors
-  terrain: string; // short terrain label
+  bgGradient: [string, string];
+  skyGradient: [string, string];
+  terrain: string;
   accentColor: string;
+  vegetationColors: [string, string, string];
 }
 
 const BIOME_THEMES: BiomeTheme[] = [
@@ -133,191 +196,251 @@ const BIOME_THEMES: BiomeTheme[] = [
   {
     name: "Sandy Dunes",
     bgGradient: ["#fef3c7", "#fde68a"],
+    skyGradient: ["#fef9ee", "#fef3c7"],
     terrain: "desert",
     accentColor: "#d97706",
+    vegetationColors: ["#D4A574", "#E8C98A", "#C67A4B"],
   },
   {
     name: "Golden Sands",
     bgGradient: ["#fde68a", "#fcd34d"],
+    skyGradient: ["#fef3c7", "#fde68a"],
     terrain: "desert",
     accentColor: "#b45309",
+    vegetationColors: ["#D4A574", "#E8C98A", "#C67A4B"],
   },
   {
     name: "Desert Dawn",
     bgGradient: ["#fcd34d", "#fbbf24"],
+    skyGradient: ["#fde68a", "#fcd34d"],
     terrain: "desert",
     accentColor: "#92400e",
+    vegetationColors: ["#D4A574", "#C67A4B", "#92400e"],
   },
   // Juz 4-6: Oasis
   {
     name: "First Oasis",
     bgGradient: ["#d1fae5", "#a7f3d0"],
+    skyGradient: ["#ecfdf5", "#d1fae5"],
     terrain: "oasis",
     accentColor: "#059669",
+    vegetationColors: ["#059669", "#22c55e", "#86efac"],
   },
   {
     name: "Palm Springs",
     bgGradient: ["#a7f3d0", "#6ee7b7"],
+    skyGradient: ["#d1fae5", "#a7f3d0"],
     terrain: "oasis",
     accentColor: "#047857",
+    vegetationColors: ["#047857", "#059669", "#34d399"],
   },
   {
     name: "Cool Waters",
     bgGradient: ["#6ee7b7", "#34d399"],
+    skyGradient: ["#a7f3d0", "#6ee7b7"],
     terrain: "oasis",
     accentColor: "#065f46",
+    vegetationColors: ["#065f46", "#047857", "#22c55e"],
   },
   // Juz 7-9: Savanna
   {
     name: "Tall Grass",
     bgGradient: ["#ecfccb", "#d9f99d"],
+    skyGradient: ["#f7fee7", "#ecfccb"],
     terrain: "savanna",
     accentColor: "#65a30d",
+    vegetationColors: ["#65a30d", "#84cc16", "#a3e635"],
   },
   {
     name: "Acacia Fields",
     bgGradient: ["#d9f99d", "#bef264"],
+    skyGradient: ["#ecfccb", "#d9f99d"],
     terrain: "savanna",
     accentColor: "#4d7c0f",
+    vegetationColors: ["#4d7c0f", "#65a30d", "#84cc16"],
   },
   {
     name: "Sunset Plains",
     bgGradient: ["#bef264", "#a3e635"],
+    skyGradient: ["#d9f99d", "#bef264"],
     terrain: "savanna",
     accentColor: "#3f6212",
+    vegetationColors: ["#3f6212", "#4d7c0f", "#65a30d"],
   },
   // Juz 10-13: Forest
   {
     name: "Pine Woods",
     bgGradient: ["#bbf7d0", "#86efac"],
+    skyGradient: ["#dcfce7", "#bbf7d0"],
     terrain: "forest",
     accentColor: "#16a34a",
+    vegetationColors: ["#166534", "#15803d", "#22c55e"],
   },
   {
     name: "Deep Forest",
     bgGradient: ["#86efac", "#4ade80"],
+    skyGradient: ["#bbf7d0", "#86efac"],
     terrain: "forest",
     accentColor: "#15803d",
+    vegetationColors: ["#14532d", "#166534", "#15803d"],
   },
   {
     name: "Oak Grove",
     bgGradient: ["#4ade80", "#22c55e"],
+    skyGradient: ["#86efac", "#4ade80"],
     terrain: "forest",
     accentColor: "#166534",
+    vegetationColors: ["#14532d", "#166534", "#22c55e"],
   },
   {
     name: "Ancient Woods",
     bgGradient: ["#22c55e", "#16a34a"],
+    skyGradient: ["#4ade80", "#22c55e"],
     terrain: "forest",
     accentColor: "#14532d",
+    vegetationColors: ["#052e16", "#14532d", "#166534"],
   },
   // Juz 14-17: Mountain
   {
     name: "Foothills",
     bgGradient: ["#e0e7ff", "#c7d2fe"],
+    skyGradient: ["#eef2ff", "#e0e7ff"],
     terrain: "mountain",
     accentColor: "#6366f1",
+    vegetationColors: ["#6366f1", "#818cf8", "#a5b4fc"],
   },
   {
     name: "Rocky Peaks",
     bgGradient: ["#c7d2fe", "#a5b4fc"],
+    skyGradient: ["#e0e7ff", "#c7d2fe"],
     terrain: "mountain",
     accentColor: "#4f46e5",
+    vegetationColors: ["#4f46e5", "#6366f1", "#818cf8"],
   },
   {
     name: "Snow Caps",
     bgGradient: ["#a5b4fc", "#818cf8"],
+    skyGradient: ["#c7d2fe", "#a5b4fc"],
     terrain: "mountain",
     accentColor: "#4338ca",
+    vegetationColors: ["#4338ca", "#4f46e5", "#c7d2fe"],
   },
   {
     name: "Summit View",
     bgGradient: ["#818cf8", "#6366f1"],
+    skyGradient: ["#a5b4fc", "#818cf8"],
     terrain: "mountain",
     accentColor: "#3730a3",
+    vegetationColors: ["#3730a3", "#4338ca", "#818cf8"],
   },
   // Juz 18-20: Highland
   {
     name: "Green Hills",
     bgGradient: ["#d1fae5", "#99f6e4"],
+    skyGradient: ["#ecfdf5", "#d1fae5"],
     terrain: "highland",
     accentColor: "#0d9488",
+    vegetationColors: ["#0d9488", "#14b8a6", "#2dd4bf"],
   },
   {
     name: "Misty Meadow",
     bgGradient: ["#99f6e4", "#5eead4"],
+    skyGradient: ["#d1fae5", "#99f6e4"],
     terrain: "highland",
     accentColor: "#0f766e",
+    vegetationColors: ["#0f766e", "#0d9488", "#14b8a6"],
   },
   {
     name: "Rolling Hills",
     bgGradient: ["#5eead4", "#2dd4bf"],
+    skyGradient: ["#99f6e4", "#5eead4"],
     terrain: "highland",
     accentColor: "#115e59",
+    vegetationColors: ["#115e59", "#0f766e", "#0d9488"],
   },
   // Juz 21-23: Valley
   {
     name: "Wildflowers",
     bgGradient: ["#fce7f3", "#fbcfe8"],
+    skyGradient: ["#fdf2f8", "#fce7f3"],
     terrain: "valley",
     accentColor: "#db2777",
+    vegetationColors: ["#db2777", "#ec4899", "#f472b6"],
   },
   {
     name: "Stream Valley",
     bgGradient: ["#fbcfe8", "#f9a8d4"],
+    skyGradient: ["#fce7f3", "#fbcfe8"],
     terrain: "valley",
     accentColor: "#be185d",
+    vegetationColors: ["#be185d", "#db2777", "#ec4899"],
   },
   {
     name: "Blossom Dale",
     bgGradient: ["#f9a8d4", "#f472b6"],
+    skyGradient: ["#fbcfe8", "#f9a8d4"],
     terrain: "valley",
     accentColor: "#9d174d",
+    vegetationColors: ["#9d174d", "#be185d", "#db2777"],
   },
   // Juz 24-26: Garden
   {
     name: "Flower Beds",
     bgGradient: ["#fef9c3", "#fef08a"],
+    skyGradient: ["#fefce8", "#fef9c3"],
     terrain: "garden",
     accentColor: "#ca8a04",
+    vegetationColors: ["#ca8a04", "#eab308", "#facc15"],
   },
   {
     name: "Rose Garden",
     bgGradient: ["#fef08a", "#fde047"],
+    skyGradient: ["#fef9c3", "#fef08a"],
     terrain: "garden",
     accentColor: "#a16207",
+    vegetationColors: ["#a16207", "#ca8a04", "#eab308"],
   },
   {
     name: "Hedge Maze",
     bgGradient: ["#fde047", "#facc15"],
+    skyGradient: ["#fef08a", "#fde047"],
     terrain: "garden",
     accentColor: "#854d0e",
+    vegetationColors: ["#854d0e", "#a16207", "#ca8a04"],
   },
   // Juz 27-28: Riverside
   {
     name: "River Banks",
     bgGradient: ["#bae6fd", "#7dd3fc"],
+    skyGradient: ["#e0f2fe", "#bae6fd"],
     terrain: "riverside",
     accentColor: "#0284c7",
+    vegetationColors: ["#0284c7", "#0ea5e9", "#38bdf8"],
   },
   {
     name: "Crystal Bridges",
     bgGradient: ["#7dd3fc", "#38bdf8"],
+    skyGradient: ["#bae6fd", "#7dd3fc"],
     terrain: "riverside",
     accentColor: "#0369a1",
+    vegetationColors: ["#0369a1", "#0284c7", "#0ea5e9"],
   },
   // Juz 29-30: Golden/Ethereal
   {
     name: "Golden Light",
     bgGradient: ["#fef3c7", "#fde68a"],
+    skyGradient: ["#fffbeb", "#fef3c7"],
     terrain: "golden",
     accentColor: "#d97706",
+    vegetationColors: ["#fbbf24", "#f59e0b", "#d97706"],
   },
   {
     name: "Crystal Paradise",
     bgGradient: ["#fde68a", "#fbbf24"],
+    skyGradient: ["#fef3c7", "#fde68a"],
     terrain: "golden",
     accentColor: "#b45309",
+    vegetationColors: ["#fbbf24", "#f59e0b", "#FFF8E7"],
   },
 ];
 
@@ -325,60 +448,163 @@ export function getBiomeTheme(juzNumber: number): BiomeTheme {
   return BIOME_THEMES[juzNumber - 1] ?? BIOME_THEMES[0];
 }
 
-// Dark mode variants
-export const BIOME_DARK_THEMES: Record<string, [string, string]> = {
-  desert: ["#451a03", "#78350f"],
-  oasis: ["#022c22", "#064e3b"],
-  savanna: ["#1a2e05", "#365314"],
-  forest: ["#052e16", "#14532d"],
-  mountain: ["#1e1b4b", "#312e81"],
-  highland: ["#042f2e", "#134e4a"],
-  valley: ["#500724", "#831843"],
-  garden: ["#422006", "#713f12"],
-  riverside: ["#0c4a6e", "#075985"],
-  golden: ["#451a03", "#78350f"],
+export const BIOME_DARK_OVERRIDES: Record<
+  string,
+  { bg: [string, string]; sky: [string, string] }
+> = {
+  desert: { bg: ["#451a03", "#78350f"], sky: ["#1c1917", "#451a03"] },
+  oasis: { bg: ["#022c22", "#064e3b"], sky: ["#0a0a0a", "#022c22"] },
+  savanna: { bg: ["#1a2e05", "#365314"], sky: ["#0a0a0a", "#1a2e05"] },
+  forest: { bg: ["#052e16", "#14532d"], sky: ["#0a0a0a", "#052e16"] },
+  mountain: { bg: ["#1e1b4b", "#312e81"], sky: ["#0a0a0a", "#1e1b4b"] },
+  highland: { bg: ["#042f2e", "#134e4a"], sky: ["#0a0a0a", "#042f2e"] },
+  valley: { bg: ["#500724", "#831843"], sky: ["#0a0a0a", "#500724"] },
+  garden: { bg: ["#422006", "#713f12"], sky: ["#0a0a0a", "#422006"] },
+  riverside: { bg: ["#0c4a6e", "#075985"], sky: ["#0a0a0a", "#0c4a6e"] },
+  golden: { bg: ["#451a03", "#78350f"], sky: ["#0a0a0a", "#451a03"] },
 };
 
 // ============================================================
-// Node positioning — sine wave path
+// River geometry
 // ============================================================
 
-export interface NodePosition {
-  x: number;
-  y: number;
-  surahNumber: number;
+/** Get river center X at a given node index (0-based) */
+export function getRiverCenterXAtIndex(index: number): number {
+  return RIVER_CENTER_X + Math.sin(index * 0.15 * Math.PI) * RIVER_AMPLITUDE;
+}
+
+/** Get river center X at an arbitrary Y position (interpolated) */
+export function getRiverCenterXAtY(y: number): number {
+  const reverseIndex = (y - RIVER_PADDING_TOP) / NODE_SPACING_Y;
+  const index = TOTAL_NODES - 1 - reverseIndex;
+  return RIVER_CENTER_X + Math.sin(index * 0.15 * Math.PI) * RIVER_AMPLITUDE;
+}
+
+/** Get river half-width, widening at node positions */
+function getRiverHalfWidth(y: number, nodeYs: number[]): number {
+  let hw = RIVER_BASE_HALF_WIDTH;
+  for (const ny of nodeYs) {
+    const dist = Math.abs(y - ny);
+    if (dist < 60) {
+      const factor = 1 - dist / 60;
+      hw += RIVER_NODE_POOL_EXTRA * factor * factor;
+    }
+  }
+  return hw;
 }
 
 /**
- * Compute all 114 node positions along the winding road.
- * Surah 1 at bottom, Surah 114 at top.
+ * Compute the river bank edge path for one side.
+ * Returns an array of points that trace the bank edge.
  */
+export function computeBankPoints(
+  side: "left" | "right",
+  nodeYs: number[],
+  step = 25
+): Point[] {
+  const yMin = RIVER_PADDING_TOP - 100;
+  const yMax = SVG_HEIGHT - RIVER_PADDING_BOTTOM + 60;
+  const points: Point[] = [];
+  const sign = side === "left" ? -1 : 1;
+
+  for (let y = yMin; y <= yMax; y += step) {
+    const cx = getRiverCenterXAtY(y);
+    const hw = getRiverHalfWidth(y, nodeYs);
+    const seed = Math.floor(y / 30) * (side === "left" ? 7 : 13) + 1;
+    const jitter = (seededRandom(seed) - 0.5) * 8;
+    points.push({ x: cx + sign * hw + jitter, y });
+  }
+
+  return points;
+}
+
+/**
+ * Compute the filled river polygon path (left bank top→bottom, right bank bottom→top).
+ */
+export function computeRiverFillPath(nodePositions: NodePosition[]): string {
+  const nodeYs = nodePositions.map((p) => p.y);
+  const left = computeBankPoints("left", nodeYs, 20);
+  const right = computeBankPoints("right", nodeYs, 20);
+
+  if (left.length === 0 || right.length === 0) return "";
+
+  const parts: string[] = [`M ${left[0].x.toFixed(1)} ${left[0].y.toFixed(1)}`];
+
+  // Left bank top→bottom
+  for (let i = 1; i < left.length; i++) {
+    parts.push(`L ${left[i].x.toFixed(1)} ${left[i].y.toFixed(1)}`);
+  }
+
+  // Cross to right bank at bottom
+  const lastRight = right[right.length - 1];
+  parts.push(`L ${lastRight.x.toFixed(1)} ${lastRight.y.toFixed(1)}`);
+
+  // Right bank bottom→top
+  for (let i = right.length - 2; i >= 0; i--) {
+    parts.push(`L ${right[i].x.toFixed(1)} ${right[i].y.toFixed(1)}`);
+  }
+
+  parts.push("Z");
+  return parts.join(" ");
+}
+
+/** Compute a smooth center-line path for shimmer/ripple effects */
+export function computeRiverCenterPath(step = 30): string {
+  const yMin = RIVER_PADDING_TOP - 100;
+  const yMax = SVG_HEIGHT - RIVER_PADDING_BOTTOM + 60;
+  const points: Point[] = [];
+
+  for (let y = yMin; y <= yMax; y += step) {
+    points.push({ x: getRiverCenterXAtY(y), y });
+  }
+
+  return catmullRomToPath(points);
+}
+
+/**
+ * Compute left/right bank stroke paths for earthy bank edges.
+ */
+export function computeBankStrokePath(
+  side: "left" | "right",
+  nodeYs: number[]
+): string {
+  const points = computeBankPoints(side, nodeYs, 20);
+  return catmullRomToPath(points);
+}
+
+// ============================================================
+// Node positioning — alternating river banks
+// ============================================================
+
 export function computeNodePositions(): NodePosition[] {
   const positions: NodePosition[] = [];
 
   for (let i = 0; i < TOTAL_NODES; i++) {
     const surahNumber = i + 1;
-    // Bottom-up: surah 1 is at the bottom, 114 at top
     const reverseIndex = TOTAL_NODES - 1 - i;
-    const y = ROAD_PADDING_TOP + reverseIndex * NODE_SPACING_Y;
-    const x = ROAD_CENTER_X + Math.sin(i * 0.15 * Math.PI) * ROAD_AMPLITUDE;
+    const y = RIVER_PADDING_TOP + reverseIndex * NODE_SPACING_Y;
+    const riverCX = getRiverCenterXAtIndex(i);
+    const bankSide: "left" | "right" = i % 2 === 0 ? "left" : "right";
+    const x =
+      bankSide === "left"
+        ? riverCX - NODE_OFFSET_FROM_RIVER
+        : riverCX + NODE_OFFSET_FROM_RIVER;
 
-    positions.push({ x, y, surahNumber });
+    positions.push({ x, y, surahNumber, bankSide, riverCenterX: riverCX });
   }
 
   return positions;
 }
 
-/**
- * Get the Y range for a juz biome zone.
- */
+// ============================================================
+// Juz Y ranges
+// ============================================================
+
 export function getJuzYRange(
   juzNumber: number,
   positions: NodePosition[]
 ): { yTop: number; yBottom: number } {
   const [startSurah, endSurah] = JUZ_SURAH_RANGES[juzNumber - 1] ?? [1, 2];
-
-  // Find min and max Y for surahs in this juz
   const juzPositions = positions.filter(
     (p) => p.surahNumber >= startSurah && p.surahNumber <= endSurah
   );
@@ -395,22 +621,13 @@ export function getJuzYRange(
 }
 
 // ============================================================
-// Catmull-Rom to Cubic Bezier conversion for smooth road path
+// Catmull-Rom to Cubic Bezier conversion
 // ============================================================
 
-interface Point {
-  x: number;
-  y: number;
-}
-
-/**
- * Convert a sequence of points to a smooth SVG path using Catmull-Rom splines.
- */
 export function catmullRomToPath(points: Point[]): string {
   if (points.length < 2) return "";
 
-  const d: string[] = [];
-  d.push(`M ${points[0].x} ${points[0].y}`);
+  const d: string[] = [`M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`];
 
   for (let i = 0; i < points.length - 1; i++) {
     const p0 = points[Math.max(0, i - 1)];
@@ -418,13 +635,14 @@ export function catmullRomToPath(points: Point[]): string {
     const p2 = points[i + 1];
     const p3 = points[Math.min(points.length - 1, i + 2)];
 
-    // Catmull-Rom to Bezier control points
     const cp1x = p1.x + (p2.x - p0.x) / 6;
     const cp1y = p1.y + (p2.y - p0.y) / 6;
     const cp2x = p2.x - (p3.x - p1.x) / 6;
     const cp2y = p2.y - (p3.y - p1.y) / 6;
 
-    d.push(`C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`);
+    d.push(
+      `C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+    );
   }
 
   return d.join(" ");
@@ -552,19 +770,15 @@ export const SURAH_ARABIC: Record<number, string> = {
 };
 
 // ============================================================
-// Find the "current progress" node — first non-mastered surah
+// Progress helpers
 // ============================================================
 
 export function findCurrentProgressIndex(trees: SurahTree[]): number {
   for (let i = 0; i < trees.length; i++) {
     if (trees[i].trunkMastery < 90) return i;
   }
-  return trees.length - 1; // all mastered
+  return trees.length - 1;
 }
-
-// ============================================================
-// Season icon helpers
-// ============================================================
 
 export function getSeasonEmoji(season: Season): string {
   switch (season) {

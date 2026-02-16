@@ -312,6 +312,8 @@ export default function MemorizePage() {
           accuracy: summary.accuracy,
           duration: summary.duration,
           surahNumber: summary.surahNumber,
+          startAyah: summary.startAyah,
+          endAyah: summary.endAyah,
         });
       };
 

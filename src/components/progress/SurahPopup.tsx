@@ -13,7 +13,7 @@ import {
   computeNodeState,
   NODE_STATE_COLORS,
   SURAH_ARABIC,
-} from "./road-utils";
+} from "./river-utils";
 import { SurahCompositionView } from "./SurahCompositionView";
 
 interface SurahPopupProps {

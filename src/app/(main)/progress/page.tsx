@@ -38,7 +38,7 @@ import { PredictiveTimeline } from "@/components/progress/PredictiveTimeline";
 import { QuranWrapped } from "@/components/progress/QuranWrapped";
 import { ReviewDebt } from "@/components/progress/ReviewDebt";
 import { ReviewForecast } from "@/components/progress/ReviewForecast";
-import { RoadToJannah } from "@/components/progress/RoadToJannah";
+import { RiverToJannah } from "@/components/progress/RiverToJannah";
 import { WeakAreas, type MistakeData } from "@/components/progress/WeakAreas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -557,7 +557,7 @@ export default function ProgressPage() {
 
         {/* ===== JANNATI TAB ===== */}
         <TabsContent value="jannati" className="mt-6">
-          <RoadToJannah />
+          <RiverToJannah />
         </TabsContent>
       </Tabs>
     </div>

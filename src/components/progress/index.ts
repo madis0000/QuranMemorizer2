@@ -27,5 +27,5 @@ export type { MistakeData, WeakArea } from "./WeakAreas";
 
 export { WrappedCard } from "./WrappedCard";
 
-export { RoadToJannah } from "./RoadToJannah";
+export { RiverToJannah } from "./RiverToJannah";
 export { SurahCompositionView } from "./SurahCompositionView";

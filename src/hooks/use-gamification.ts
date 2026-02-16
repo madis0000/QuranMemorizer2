@@ -18,6 +18,8 @@ export interface PostSessionParams {
   accuracy: number;
   duration: number; // seconds
   surahNumber: number;
+  startAyah: number;
+  endAyah: number;
   isNewMemorization?: boolean;
   newVersesCount?: number;
 }
@@ -112,6 +114,43 @@ export function usePostSessionGamification() {
           console.error("[Gamification] Failed to persist achievements:", err)
         );
       }
+
+      // 7. Create & review FSRS cards for each ayah (fire-and-forget)
+      // This powers the Jannati garden tree growth
+      (async () => {
+        try {
+          // Create cards for the range (skips already-existing ones)
+          await fetch("/api/progress/srs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              surahNumber: params.surahNumber,
+              startAyah: params.startAyah,
+              endAyah: params.endAyah,
+              category: "sabaq",
+            }),
+          });
+
+          // Review each card with the session accuracy
+          const reviewPromises = [];
+          for (let ayah = params.startAyah; ayah <= params.endAyah; ayah++) {
+            reviewPromises.push(
+              fetch("/api/progress/srs", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  surahNumber: params.surahNumber,
+                  ayahNumber: ayah,
+                  accuracy: params.accuracy,
+                }),
+              })
+            );
+          }
+          await Promise.all(reviewPromises);
+        } catch (err) {
+          console.error("[Gamification] Failed to update FSRS cards:", err);
+        }
+      })();
 
       return { xpResult, newAchievements };
     },

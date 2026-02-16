@@ -23,6 +23,8 @@ interface VoiceRecorderProps {
   className?: string;
   /** When true, renders only the mic button without engine label, status text, or error. */
   compact?: boolean;
+  /** When true, auto-start recording on mount after a short delay. */
+  autoStart?: boolean;
 }
 
 /** Shape of the object returned by createWebSpeechRecognizer. */
@@ -48,6 +50,7 @@ export function VoiceRecorder({
   disabled = false,
   className,
   compact = false,
+  autoStart = false,
 }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -79,6 +82,21 @@ export function VoiceRecorder({
   useEffect(() => {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
+
+  // Auto-start recording on mount when requested
+  const autoStartTriggeredRef = useRef(false);
+  useEffect(() => {
+    if (autoStart && !disabled && !autoStartTriggeredRef.current) {
+      autoStartTriggeredRef.current = true;
+      const timer = setTimeout(() => {
+        if (!isRecordingRef.current) {
+          startRecording();
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, disabled]);
 
   // ===== Volume animation =====
 

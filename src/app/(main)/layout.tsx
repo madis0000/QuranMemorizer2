@@ -80,10 +80,14 @@ export default function MainLayout({
   }, [hydrated]);
 
   useEffect(() => {
-    if (hydrated && !isOnboarded && pathname !== "/onboarding") {
-      router.push("/onboarding");
+    if (hydrated && pathname !== "/onboarding") {
+      // Read isOnboarded directly from the hydrated store state, not from the hook
+      const onboarded = useUserStore.getState().isOnboarded;
+      if (!onboarded) {
+        router.push("/onboarding");
+      }
     }
-  }, [hydrated, isOnboarded, pathname, router]);
+  }, [hydrated, pathname, router]);
 
   return (
     <div className="min-h-screen bg-background">

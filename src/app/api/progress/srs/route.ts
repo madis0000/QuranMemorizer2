@@ -210,8 +210,13 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { surahNumber, ayahNumber, accuracy, showOptions } =
-      await request.json();
+    const {
+      surahNumber,
+      ayahNumber,
+      accuracy,
+      rating: explicitRating,
+      showOptions,
+    } = await request.json();
 
     if (!surahNumber || !ayahNumber || accuracy === undefined) {
       return NextResponse.json(
@@ -223,7 +228,7 @@ export async function PATCH(request: Request) {
     }
 
     // Find the card
-    const prismaCard = await prisma.fSRSCard.findUnique({
+    let prismaCard = await prisma.fSRSCard.findUnique({
       where: {
         userId_surahNumber_ayahNumber: {
           userId: session.user.id,
@@ -233,8 +238,28 @@ export async function PATCH(request: Request) {
       },
     });
 
+    // If card doesn't exist, create it (upsert pattern)
     if (!prismaCard) {
-      return NextResponse.json({ error: "Card not found" }, { status: 404 });
+      const newCard = createCard(surahNumber, ayahNumber);
+      prismaCard = await prisma.fSRSCard.create({
+        data: {
+          userId: session.user.id,
+          surahNumber: newCard.surahNumber,
+          ayahNumber: newCard.ayahNumber,
+          due: new Date(newCard.due),
+          stability: newCard.stability,
+          difficulty: newCard.difficulty,
+          elapsedDays: newCard.elapsed_days,
+          scheduledDays: newCard.scheduled_days,
+          reps: newCard.reps,
+          lapses: newCard.lapses,
+          state: newCard.state,
+          lastReview: null,
+          totalReviews: newCard.totalReviews,
+          averageAccuracy: newCard.averageAccuracy,
+          category: newCard.category,
+        },
+      });
     }
 
     const card = prismaToSRSCard(prismaCard);
@@ -249,8 +274,11 @@ export async function PATCH(request: Request) {
       });
     }
 
-    // Calculate next review using FSRS
-    const rating = accuracyToRating(accuracy);
+    // Use explicit rating (1-4) if provided, otherwise derive from accuracy
+    const rating =
+      explicitRating && explicitRating >= 1 && explicitRating <= 4
+        ? explicitRating
+        : accuracyToRating(accuracy);
     const { card: updatedCard } = reviewCard(card, rating, accuracy);
 
     // Update in database

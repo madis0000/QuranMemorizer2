@@ -41,6 +41,8 @@ interface MushafLayoutProps {
   interimText: string;
   finalText: string;
   overlayCollapsed: boolean;
+  /** Auto-start mic on next ayah */
+  autoStartMic?: boolean;
   onOverlayCollapse: (collapsed: boolean) => void;
   onTranscript: (text: string, isFinal: boolean) => void;
   onRecordingChange: (recording: boolean) => void;
@@ -96,6 +98,7 @@ export function MushafLayout({
   interimText,
   finalText,
   overlayCollapsed,
+  autoStartMic,
   onOverlayCollapse,
   onTranscript,
   onRecordingChange,
@@ -244,6 +247,7 @@ export function MushafLayout({
               onEngineChange={onEngineChange}
               disabled={!isActive}
               compact
+              autoStart={autoStartMic}
             />
             <Button
               variant="outline"

@@ -2,6 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+// ===== Jannati Garden Hook =====
+
+import type { SurahTree } from "@/lib/gamification/surah-trees";
+
 // Query keys
 export const progressKeys = {
   all: ["progress"] as const,
@@ -15,7 +19,37 @@ export const progressKeys = {
   bookmarks: (surahNumber?: number) =>
     ["user", "bookmarks", { surahNumber }] as const,
   badges: () => ["user", "badges"] as const,
+  jannati: () => [...progressKeys.all, "jannati"] as const,
 };
+
+export interface JannatiData {
+  trees: SurahTree[];
+  gardenStats: {
+    totalBloom: number;
+    totalAyahs: number;
+    bloomPercentage: number;
+    gardenLevel: number;
+    isParadise: boolean;
+    hasanat: number;
+  };
+  rivers: Array<{
+    from: { surah: number; ayah: number };
+    to: { surah: number; ayah: number };
+    strength: number;
+  }>;
+}
+
+export function useJannati() {
+  return useQuery({
+    queryKey: progressKeys.jannati(),
+    queryFn: async () => {
+      const res = await fetch("/api/progress/jannati");
+      if (!res.ok) throw new Error("Failed to fetch jannati data");
+      return res.json() as Promise<JannatiData>;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 // Session hooks
 export function useSessions(params?: {

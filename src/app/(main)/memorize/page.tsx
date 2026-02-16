@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SURAH_NAMES } from "@/data/hizb-data";
 import {
   useActiveSessions,
   useCompleteSession,
@@ -99,6 +100,7 @@ export default function MemorizePage() {
     useState<ComparisonResult | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [overlayCollapsed, setOverlayCollapsed] = useState(false);
+  const [autoStartMic, setAutoStartMic] = useState(false);
 
   // --- Session persistence: hydration + recovery ---
   const [hydrationChecked, setHydrationChecked] = useState(false);
@@ -558,8 +560,25 @@ export default function MemorizePage() {
     (rating: 1 | 2 | 3 | 4) => {
       const key = `${session.surahNumber}:${session.currentAyah}`;
       session.setFSRSRating(key, rating);
+
+      // Persist to server - fire and forget
+      const attempt = session.ayahHistory[key];
+      const accuracy =
+        completionCard?.accuracy ??
+        attempt?.lastAccuracy ??
+        (rating >= 3 ? 90 : rating === 2 ? 60 : 30);
+      fetch("/api/progress/srs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surahNumber: session.surahNumber,
+          ayahNumber: session.currentAyah,
+          accuracy,
+          rating,
+        }),
+      }).catch(console.error);
     },
-    [session]
+    [session, completionCard]
   );
 
   const handleCompletionNext = useCallback(() => {
@@ -567,6 +586,7 @@ export default function MemorizePage() {
     setComparisonResult(null);
     ayahStartTimeRef.current = timestamp();
     resetVoice();
+    setAutoStartMic(true);
     handleNextAyahRef.current();
   }, [resetVoice]);
 
@@ -577,6 +597,33 @@ export default function MemorizePage() {
     resetVoice();
   }, [resetVoice]);
 
+  // Wrapper to clear autoStartMic once recording starts
+  const handleRecordingChange = useCallback((recording: boolean) => {
+    setIsRecording(recording);
+    if (recording) setAutoStartMic(false);
+  }, []);
+
+  // Continue to next surah handler
+  const handleContinueNextSurah = useCallback(() => {
+    const nextSurah = session.surahNumber + 1;
+    if (nextSurah > 114) return;
+    const nextAyahCount = getAyahCount(nextSurah) || 7;
+
+    setCompletionCard(null);
+    setComparisonResult(null);
+    resetVoice();
+    ayahStartTimeRef.current = timestamp();
+
+    session.navigateToVerse(nextSurah, 1);
+    useSessionStore.setState({
+      endAyah: nextAyahCount,
+      startAyah: 1,
+      ayahHistory: {},
+      combo: 0,
+    });
+    setAutoStartMic(true);
+  }, [session, resetVoice]);
+
   // --- Mid-session navigation handler ---
   const handleNavigateToVerse = useCallback(
     (surah: number, ayah: number) => {
@@ -584,6 +631,7 @@ export default function MemorizePage() {
       muteUntilRef.current = timestamp() + 600;
       resetVoice();
       setComparisonResult(null);
+      setCompletionCard(null);
 
       session.navigateToVerse(surah, ayah);
 
@@ -777,6 +825,30 @@ export default function MemorizePage() {
     autoAdvance,
     isMushafActive,
   ]);
+
+  // --- Peek auto-re-hide after 3s (improvement #3) ---
+  const isRecordingRef = useRef(isRecording);
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  const prevIsHiddenRef = useRef(session.isHidden);
+  useEffect(() => {
+    const wasHidden = prevIsHiddenRef.current;
+    prevIsHiddenRef.current = session.isHidden;
+
+    // Detect transition from hidden → revealed (user peeked)
+    if (wasHidden && !session.isHidden && !isRecording) {
+      const timer = setTimeout(() => {
+        // Only re-hide if still revealed and not recording
+        const state = useSessionStore.getState();
+        if (!state.isHidden && !isRecordingRef.current) {
+          state.toggleHidden();
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [session.isHidden, isRecording]);
 
   // --- Recovery dialog handlers ---
 
@@ -1009,6 +1081,17 @@ export default function MemorizePage() {
               ? session.currentVerseIndex >= session.verseList.length - 1
               : session.currentAyah >= session.endAyah
           }
+          onFinishSession={handleEndSession}
+          onContinueNextSurah={
+            !isCrossSurah && session.surahNumber < 114
+              ? handleContinueNextSurah
+              : undefined
+          }
+          nextSurahName={
+            !isCrossSurah && session.surahNumber < 114
+              ? (SURAH_NAMES[session.surahNumber + 1] ?? undefined)
+              : undefined
+          }
         />
       )}
 
@@ -1030,9 +1113,10 @@ export default function MemorizePage() {
           interimText={interimText}
           finalText={finalText}
           overlayCollapsed={overlayCollapsed}
+          autoStartMic={autoStartMic}
           onOverlayCollapse={setOverlayCollapsed}
           onTranscript={gatedHandleTranscript}
-          onRecordingChange={setIsRecording}
+          onRecordingChange={handleRecordingChange}
           onEngineChange={handleEngineChange}
           onVoiceReset={voiceReset}
           onCheckRecitation={handleCheckRecitation}
@@ -1052,7 +1136,12 @@ export default function MemorizePage() {
         />
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto bg-[#F2F0ED] dark:bg-[#0A1210]">
-          {!session.isActive && <SmartDashboard mode={memorizeMode} />}
+          {!session.isActive && (
+            <SmartDashboard
+              mode={memorizeMode}
+              onStartSession={handleStartSession}
+            />
+          )}
 
           {session.isActive && (
             <AyahLayout
@@ -1078,8 +1167,9 @@ export default function MemorizePage() {
               trackerWords={trackerWords}
               fluencyMetrics={fluencyMetrics}
               isActive={session.isActive}
+              autoStartMic={autoStartMic}
               onTranscript={gatedHandleTranscript}
-              onRecordingChange={setIsRecording}
+              onRecordingChange={handleRecordingChange}
               onEngineChange={handleEngineChange}
               onVoiceReset={voiceReset}
               onCheckRecitation={handleCheckRecitation}

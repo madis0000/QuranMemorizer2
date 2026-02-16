@@ -13,20 +13,28 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import { useActiveSessions } from "@/hooks/use-progress";
+import { getAyahCount } from "@/lib/gamification/surah-trees";
+import { useActiveSessions, useSessions } from "@/hooks/use-progress";
 import { useDueCards, useSRSStats } from "@/hooks/use-srs";
+import type { MemorizeMode } from "@/stores/quranStore";
+import type { StartSessionConfig } from "@/stores/sessionStore";
 import { useUserStore } from "@/stores/userStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface SmartDashboardProps {
   mode: string;
+  onStartSession?: (config: StartSessionConfig) => void;
 }
 
-export function SmartDashboard({ mode }: SmartDashboardProps) {
+export function SmartDashboard({ mode, onStartSession }: SmartDashboardProps) {
   const { data: dueData } = useDueCards();
   const { data: srsStats } = useSRSStats();
   const { data: activeSessionsData } = useActiveSessions();
+  const { data: lastSessionData } = useSessions({
+    limit: 1,
+    status: "COMPLETED",
+  });
   const streak = useUserStore((s) => s.streak.currentStreak);
 
   const dueCount = dueData?.cards?.length ?? 0;
@@ -38,6 +46,43 @@ export function SmartDashboard({ mode }: SmartDashboardProps) {
   const stats = srsStats as
     | { newCount?: number; learningCount?: number; reviewCount?: number }
     | undefined;
+
+  // Compute streak-aware suggestion from last completed session
+  const lastSession = (
+    lastSessionData as {
+      sessions?: Array<{ surahNumber: number; endAyah: number }>;
+    }
+  )?.sessions?.[0];
+  let suggestedSurah: number | null = null;
+  let suggestedStartAyah: number | null = null;
+  let suggestedDesc = "";
+
+  if (lastSession) {
+    const totalAyahs = getAyahCount(lastSession.surahNumber) || 0;
+    if (lastSession.endAyah < totalAyahs) {
+      // Continue same surah from where they left off
+      suggestedSurah = lastSession.surahNumber;
+      suggestedStartAyah = lastSession.endAyah + 1;
+      suggestedDesc = `${SURAH_NAMES[suggestedSurah] ?? `Surah ${suggestedSurah}`} from ayah ${suggestedStartAyah}`;
+    } else if (lastSession.surahNumber < 114) {
+      // Move to next surah
+      suggestedSurah = lastSession.surahNumber + 1;
+      suggestedStartAyah = 1;
+      suggestedDesc = `${SURAH_NAMES[suggestedSurah] ?? `Surah ${suggestedSurah}`} from the beginning`;
+    }
+  }
+
+  const handleContinueSurah = () => {
+    if (!onStartSession || !suggestedSurah || !suggestedStartAyah) return;
+    const totalAyahs = getAyahCount(suggestedSurah) || 7;
+    onStartSession({
+      mode: "memorize",
+      surahNumber: suggestedSurah,
+      startAyah: suggestedStartAyah,
+      endAyah: totalAyahs,
+      targetType: (mode || "ayah") as MemorizeMode,
+    });
+  };
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto">
@@ -150,9 +195,10 @@ export function SmartDashboard({ mode }: SmartDashboardProps) {
             <QuickStartCard
               icon={<TrendingUp className="h-4 w-4" />}
               title="Continue Surah"
-              desc="Pick up from your last position"
+              desc={suggestedDesc || "Pick up from your last position"}
               color="from-blue-500/10 to-cyan-500/10 dark:from-blue-900/20 dark:to-cyan-900/20"
               iconColor="text-blue-500"
+              onClick={suggestedSurah ? handleContinueSurah : undefined}
             />
             <QuickStartCard
               icon={<Shuffle className="h-4 w-4" />}
@@ -184,16 +230,19 @@ function QuickStartCard({
   desc,
   color,
   iconColor,
+  onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   desc: string;
   color: string;
   iconColor: string;
+  onClick?: () => void;
 }) {
   return (
     <button
       className={`text-left rounded-xl border p-3.5 bg-gradient-to-br ${color} hover:shadow-md transition-all group`}
+      onClick={onClick}
     >
       <div
         className={`${iconColor} mb-2 group-hover:scale-110 transition-transform`}

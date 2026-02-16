@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SURAH_NAMES } from "@/data/hizb-data";
-import { ChevronRight, RefreshCw, Star } from "lucide-react";
+import { ChevronRight, RefreshCw, SkipForward, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +19,12 @@ interface AyahCompletionCardProps {
   onNext: () => void;
   /** Whether this is the last ayah in the session */
   isLastAyah: boolean;
+  /** Called to continue to the next surah (only provided when applicable) */
+  onContinueNextSurah?: () => void;
+  /** Name of the next surah (e.g. "Al-Baqarah") */
+  nextSurahName?: string;
+  /** Called to finish/end the session */
+  onFinishSession?: () => void;
 }
 
 const RATINGS = [
@@ -66,13 +72,16 @@ export function AyahCompletionCard({
   onRetry,
   onNext,
   isLastAyah,
+  onContinueNextSurah,
+  nextSurahName,
+  onFinishSession,
 }: AyahCompletionCardProps) {
   const [dismissed, setDismissed] = useState(false);
   const autoDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-dismiss after 1.5s if accuracy >= 90%, with "Good" as default rating
+  // Auto-dismiss after 1.5s if accuracy >= 90% — but NOT on last ayah (let user choose)
   useEffect(() => {
-    if (accuracy >= 90) {
+    if (accuracy >= 90 && !isLastAyah) {
       autoDismissRef.current = setTimeout(() => {
         onRate(getAutoRating(accuracy));
         setDismissed(true);
@@ -82,7 +91,7 @@ export function AyahCompletionCard({
         if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
       };
     }
-  }, [accuracy, onRate, onNext]);
+  }, [accuracy, onRate, onNext, isLastAyah]);
 
   const handleRate = (rating: 1 | 2 | 3 | 4) => {
     if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
@@ -96,6 +105,28 @@ export function AyahCompletionCard({
     onRate(1); // "Again" for retries
     setDismissed(true);
     onRetry();
+  };
+
+  /** "Skip" for weak ayahs — auto-rates as Again before advancing */
+  const handleSkip = () => {
+    if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+    onRate(1);
+    setDismissed(true);
+    onNext();
+  };
+
+  const handleContinueNextSurah = () => {
+    if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+    onRate(getAutoRating(accuracy));
+    setDismissed(true);
+    onContinueNextSurah?.();
+  };
+
+  const handleFinish = () => {
+    if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+    onRate(getAutoRating(accuracy));
+    setDismissed(true);
+    onFinishSession?.();
   };
 
   if (dismissed) return null;
@@ -146,27 +177,87 @@ export function AyahCompletionCard({
 
           {/* Quick actions */}
           <div className="flex items-center gap-1.5">
+            {isWeak ? (
+              <>
+                {/* Weak: prominent retry, dimmed skip */}
+                <Button
+                  size="sm"
+                  className="h-7 px-2 text-xs bg-red-500 hover:bg-red-600 text-white"
+                  onClick={handleRetry}
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Try Again
+                </Button>
+                {!isLastAyah && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs opacity-60 hover:opacity-100"
+                    onClick={handleSkip}
+                  >
+                    <SkipForward className="h-3 w-3 mr-1" />
+                    Skip
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={handleRetry}
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+                {!isLastAyah && (
+                  <Button
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => handleRate(highlightedRating)}
+                  >
+                    Next
+                    <ChevronRight className="h-3 w-3 ml-0.5" />
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Encouragement text for weak accuracy */}
+        {isWeak && (
+          <div className="px-4 pb-1">
+            <p className="text-[10px] text-red-500 dark:text-red-400 font-medium">
+              Try again for better retention
+            </p>
+          </div>
+        )}
+
+        {/* Last ayah: Finish + Continue to next surah */}
+        {isLastAyah && (
+          <div className="px-4 pb-2 flex items-center gap-2">
             <Button
-              variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={handleRetry}
+              variant="outline"
+              className="h-8 text-xs flex-1"
+              onClick={handleFinish}
             >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Retry
+              Finish Session
             </Button>
-            {!isLastAyah && (
+            {onContinueNextSurah && nextSurahName && (
               <Button
                 size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => handleRate(highlightedRating)}
+                className="h-8 text-xs flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={handleContinueNextSurah}
               >
-                Next
+                Continue to {nextSurahName}
                 <ChevronRight className="h-3 w-3 ml-0.5" />
               </Button>
             )}
           </div>
-        </div>
+        )}
 
         {/* FSRS Rating Row */}
         <div className="px-4 pb-3">
@@ -190,8 +281,8 @@ export function AyahCompletionCard({
           </div>
         </div>
 
-        {/* Auto-dismiss progress for high accuracy */}
-        {accuracy >= 90 && (
+        {/* Auto-dismiss progress for high accuracy (not on last ayah) */}
+        {accuracy >= 90 && !isLastAyah && (
           <div className="h-0.5 bg-emerald-500/20">
             <div className="h-full bg-emerald-500 animate-shrink-bar" />
           </div>

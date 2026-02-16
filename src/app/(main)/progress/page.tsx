@@ -6,6 +6,7 @@ import {
   Clock,
   Flame,
   Map,
+  Sparkles,
   Target,
   TrendingUp,
   Trophy,
@@ -37,6 +38,7 @@ import { PredictiveTimeline } from "@/components/progress/PredictiveTimeline";
 import { QuranWrapped } from "@/components/progress/QuranWrapped";
 import { ReviewDebt } from "@/components/progress/ReviewDebt";
 import { ReviewForecast } from "@/components/progress/ReviewForecast";
+import { RoadToJannah } from "@/components/progress/RoadToJannah";
 import { WeakAreas, type MistakeData } from "@/components/progress/WeakAreas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -65,7 +67,9 @@ interface GoalData {
 
 interface BadgeData {
   id: string;
-  badgeCode: string;
+  badgeCode?: string;
+  code?: string;
+  name?: string;
   earnedAt: string;
 }
 
@@ -141,13 +145,18 @@ function formatDate(dateString: string): string {
 }
 
 export default function ProgressPage() {
-  // Existing data hooks
-  const { data: sessions, isLoading: sessionsLoading } = useSessions({
+  // Existing data hooks — APIs return wrapped objects, extract arrays
+  const { data: sessionsData, isLoading: sessionsLoading } = useSessions({
     limit: 50,
   });
   const { data: streaks, isLoading: streaksLoading } = useStreaks();
-  const { data: goals, isLoading: goalsLoading } = useGoals(true);
-  const { data: badges, isLoading: badgesLoading } = useBadges();
+  const { data: goalsData, isLoading: goalsLoading } = useGoals(true);
+  const { data: badgesData, isLoading: badgesLoading } = useBadges();
+
+  // Extract arrays from wrapped API responses
+  const sessions: SessionData[] = sessionsData?.sessions ?? [];
+  const goals: GoalData[] = goalsData?.goals ?? [];
+  const badges: BadgeData[] = badgesData?.badges ?? [];
 
   // New dashboard hooks
   const { data: scoresData } = useDualScores();
@@ -159,40 +168,36 @@ export default function ProgressPage() {
   const { data: wrappedData } = useWrapped("month");
 
   // Process data
-  const weeklyStats = getWeeklyStats(sessions || []);
-  const weeklyProgress = groupByDay(sessions || []);
-  const badgeData =
-    badges?.map((ub: BadgeData) => {
-      const def = getBadgeByCode(ub.badgeCode);
-      return {
-        name: def?.name || ub.badgeCode,
-        description: def?.description || "",
-        date: formatDate(ub.earnedAt),
-      };
-    }) || [];
+  const weeklyStats = getWeeklyStats(sessions);
+  const weeklyProgress = groupByDay(sessions);
+  const badgeData = badges.map((ub: BadgeData) => {
+    const code = ub.badgeCode ?? ub.code ?? "";
+    const def = code ? getBadgeByCode(code) : null;
+    return {
+      name: def?.name || ub.name || ub.badgeCode || ub.code || "Badge",
+      description: def?.description || "",
+      date: formatDate(ub.earnedAt),
+    };
+  });
 
   // Extract mistakes from sessions for WeakAreas
   const allMistakes: MistakeData[] = [];
-  if (sessions) {
-    for (const s of sessions as SessionData[]) {
-      if (s.mistakes) {
-        for (const m of s.mistakes) {
-          allMistakes.push(m);
-        }
+  for (const s of sessions) {
+    if (s.mistakes) {
+      for (const m of s.mistakes) {
+        allMistakes.push(m);
       }
     }
   }
 
   // Convert sessions to AccuracyTrend format
-  const sessionPoints: SessionPoint[] = (sessions || []).map(
-    (s: SessionData) => ({
-      id: s.id,
-      date: s.createdAt,
-      accuracy: s.accuracy ?? 0,
-      surahNumber: s.surahNumber,
-      mode: s.mode,
-    })
-  );
+  const sessionPoints: SessionPoint[] = sessions.map((s: SessionData) => ({
+    id: s.id,
+    date: s.createdAt,
+    accuracy: s.accuracy ?? 0,
+    surahNumber: s.surahNumber,
+    mode: s.mode,
+  }));
 
   const isLoading =
     sessionsLoading || streaksLoading || goalsLoading || badgesLoading;
@@ -230,6 +235,10 @@ export default function ProgressPage() {
           <TabsTrigger value="journey">
             <Trophy className="h-4 w-4 mr-1.5" />
             Journey
+          </TabsTrigger>
+          <TabsTrigger value="jannati">
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Jannati
           </TabsTrigger>
         </TabsList>
 
@@ -312,7 +321,7 @@ export default function ProgressPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
-                      {badgesLoading ? "..." : badges?.length || 0}
+                      {badgesLoading ? "..." : badges.length || 0}
                     </p>
                     <p className="text-sm text-muted-foreground">Badges</p>
                   </div>
@@ -544,6 +553,11 @@ export default function ProgressPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ===== JANNATI TAB ===== */}
+        <TabsContent value="jannati" className="mt-6">
+          <RoadToJannah />
         </TabsContent>
       </Tabs>
     </div>

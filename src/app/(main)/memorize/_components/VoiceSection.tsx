@@ -21,6 +21,8 @@ interface VoiceSectionProps {
   isActive: boolean;
   /** Changing this key forces the VoiceRecorder to remount (fresh recognition session). */
   recorderKey?: string;
+  /** Auto-start mic recording on mount */
+  autoStart?: boolean;
   onTranscript: (text: string, isFinal: boolean) => void;
   onRecordingChange: (recording: boolean) => void;
   onEngineChange: (engine: EngineType) => void;
@@ -36,6 +38,7 @@ export function VoiceSection({
   fluencyMetrics,
   isActive,
   recorderKey,
+  autoStart,
   onTranscript,
   onRecordingChange,
   onEngineChange,
@@ -60,6 +63,7 @@ export function VoiceSection({
           onRecordingChange={onRecordingChange}
           onEngineChange={onEngineChange}
           disabled={!isActive}
+          autoStart={autoStart}
         />
 
         <div className="flex justify-center gap-3">

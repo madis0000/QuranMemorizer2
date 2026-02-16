@@ -38,6 +38,8 @@ interface AyahLayoutProps {
   trackerWords: string[];
   fluencyMetrics: ReturnType<typeof useVoiceRecognition>["fluencyMetrics"];
   isActive: boolean;
+  /** Auto-start mic on next ayah */
+  autoStartMic?: boolean;
   onTranscript: (text: string, isFinal: boolean) => void;
   onRecordingChange: (recording: boolean) => void;
   onEngineChange: (engine: EngineType) => void;
@@ -73,6 +75,7 @@ export function AyahLayout({
   trackerWords,
   fluencyMetrics,
   isActive,
+  autoStartMic,
   onTranscript,
   onRecordingChange,
   onEngineChange,
@@ -117,6 +120,7 @@ export function AyahLayout({
         fluencyMetrics={fluencyMetrics}
         isActive={isActive}
         recorderKey={`${currentSurahNumber}:${currentAyahNumber}`}
+        autoStart={autoStartMic}
         onTranscript={onTranscript}
         onRecordingChange={onRecordingChange}
         onEngineChange={onEngineChange}

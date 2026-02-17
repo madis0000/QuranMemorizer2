@@ -9,6 +9,10 @@ import {
 
 import type { QPCVersion } from "@/lib/fonts/qpc-fonts";
 import { cn } from "@/lib/utils";
+import type {
+  WeaknessLevel,
+  WordFeedbackData,
+} from "@/hooks/use-word-feedback";
 import {
   Tooltip,
   TooltipContent,
@@ -27,6 +31,8 @@ export interface MushafWordProps {
   isCurrentAyah?: boolean;
   hintText?: string; // e.g. "ب..." for first_letter mode
   mistakeDetail?: { recitedWord?: string };
+  weaknessLevel?: WeaknessLevel;
+  wordHistory?: WordFeedbackData;
   onClick?: (word: MushafWordType) => void;
   onHover?: (word: MushafWordType | null) => void;
   fontSize?: number;
@@ -49,6 +55,8 @@ export const MushafWord = memo(function MushafWord({
   isCurrentAyah = false,
   hintText,
   mistakeDetail,
+  weaknessLevel,
+  wordHistory,
   onClick,
   onHover,
   fontSize,
@@ -211,6 +219,52 @@ export const MushafWord = memo(function MushafWord({
     );
   }
 
+  // Weakness underline classes
+  const weaknessClass =
+    weaknessLevel === "weak"
+      ? "border-b-2 border-amber-400/70"
+      : weaknessLevel === "moderate"
+        ? "border-b border-amber-300/40"
+        : undefined;
+
+  // Helper: wrap a span with history tooltip (if available) or mistake tooltip
+  const wrapWithTooltip = (span: React.ReactElement) => {
+    // Mistake tooltip takes priority
+    if (isMistake && mistakeDetail?.recitedWord) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{span}</TooltipTrigger>
+          <TooltipContent
+            className="bg-popover text-popover-foreground border shadow-md"
+            sideOffset={4}
+          >
+            <div className="text-xs space-y-0.5 font-sans" dir="rtl">
+              <div className="text-red-500">
+                You said: {mistakeDetail.recitedWord}
+              </div>
+              <div className="text-emerald-500">Correct: {word.text}</div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+    // History tooltip for previously-attempted words
+    if (wordHistory && wordHistory.totalAttempts > 0) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{span}</TooltipTrigger>
+          <TooltipContent
+            className="bg-popover text-popover-foreground border shadow-md px-3 py-2"
+            sideOffset={4}
+          >
+            <WordHistoryTooltip history={wordHistory} />
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+    return span;
+  };
+
   // IMPORTANT: QPC glyph codes MUST use dangerouslySetInnerHTML per Quran Foundation docs
   // Regular text can use normal React children
   if (glyphCode) {
@@ -225,6 +279,7 @@ export const MushafWord = memo(function MushafWord({
           isCurrent && "bg-primary/30 text-primary",
           isMistake && "bg-destructive/20 text-destructive",
           !isHighlighted && !isCurrent && !isMistake && "hover:bg-primary/10",
+          weaknessClass,
           className
         )}
         style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
@@ -242,25 +297,7 @@ export const MushafWord = memo(function MushafWord({
         suppressHydrationWarning
       />
     );
-    if (isMistake && mistakeDetail?.recitedWord) {
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>{glyphSpan}</TooltipTrigger>
-          <TooltipContent
-            className="bg-popover text-popover-foreground border shadow-md"
-            sideOffset={4}
-          >
-            <div className="text-xs space-y-0.5 font-sans" dir="rtl">
-              <div className="text-red-500">
-                You said: {mistakeDetail.recitedWord}
-              </div>
-              <div className="text-emerald-500">Correct: {word.text}</div>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-    return glyphSpan;
+    return wrapWithTooltip(glyphSpan);
   }
 
   // Fallback to regular text rendering (no glyph code available)
@@ -275,6 +312,7 @@ export const MushafWord = memo(function MushafWord({
         isCurrent && "bg-primary/30 text-primary",
         isMistake && "bg-destructive/20 text-destructive",
         !isHighlighted && !isCurrent && !isMistake && "hover:bg-primary/10",
+        weaknessClass,
         className
       )}
       style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
@@ -296,25 +334,7 @@ export const MushafWord = memo(function MushafWord({
       )}
     </span>
   );
-  if (isMistake && mistakeDetail?.recitedWord) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{fallbackSpan}</TooltipTrigger>
-        <TooltipContent
-          className="bg-popover text-popover-foreground border shadow-md"
-          sideOffset={4}
-        >
-          <div className="text-xs space-y-0.5 font-sans" dir="rtl">
-            <div className="text-red-500">
-              You said: {mistakeDetail.recitedWord}
-            </div>
-            <div className="text-emerald-500">Correct: {word.text}</div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-  return fallbackSpan;
+  return wrapWithTooltip(fallbackSpan);
 });
 
 /**
@@ -373,6 +393,81 @@ function TajweedText({ text, rules }: TajweedTextProps) {
       )}
     </>
   );
+}
+
+/**
+ * Tooltip showing word-level history: attempts, success rate, dot indicators
+ */
+function WordHistoryTooltip({ history }: { history: WordFeedbackData }) {
+  const rate = Math.round(history.successRate * 100);
+  const lastMistakeAgo = history.lastMistake
+    ? formatTimeAgo(new Date(history.lastMistake))
+    : null;
+
+  // Show last 5 attempts as dots (approximate from counts)
+  const recentCount = Math.min(history.totalAttempts, 5);
+  const recentCorrect = Math.min(history.correctCount, recentCount);
+  const dots: boolean[] = [];
+  // Fill with mistakes first, then corrects (approximation)
+  const mistakes = recentCount - recentCorrect;
+  for (let i = 0; i < mistakes; i++) dots.push(false);
+  for (let i = 0; i < recentCorrect; i++) dots.push(true);
+
+  return (
+    <div className="text-xs space-y-1 font-sans min-w-[140px]" dir="ltr">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-muted-foreground">
+          {history.totalAttempts} attempt
+          {history.totalAttempts !== 1 ? "s" : ""}
+        </span>
+        <span
+          className={cn(
+            "font-medium",
+            rate >= 85
+              ? "text-emerald-500"
+              : rate >= 60
+                ? "text-amber-500"
+                : "text-red-500"
+          )}
+        >
+          {rate}% rate
+        </span>
+      </div>
+      {recentCount > 0 && (
+        <div className="flex items-center gap-1">
+          {dots.map((correct, i) => (
+            <span
+              key={i}
+              className={cn(
+                "inline-block w-2 h-2 rounded-full",
+                correct ? "bg-emerald-400" : "bg-red-400"
+              )}
+            />
+          ))}
+          <span className="text-muted-foreground ml-1">last {recentCount}</span>
+        </div>
+      )}
+      {lastMistakeAgo && (
+        <div className="text-muted-foreground">
+          Last mistake: {lastMistakeAgo}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Format a Date as relative time ago (e.g. "2d ago", "3h ago") */
+function formatTimeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
 }
 
 export default MushafWord;

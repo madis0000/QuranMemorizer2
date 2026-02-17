@@ -91,6 +91,7 @@ model User {
   challengeAttempts ChallengeAttempt[]
   gardenState     GardenState?
   pushSubscriptions PushSubscription[]
+  wordFeedback    WordFeedback[]
 
   @@index([email])
 }
@@ -571,6 +572,32 @@ model PushSubscription {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// ===== Word-Level Feedback =====
+
+model WordFeedback {
+  id            String    @id @default(cuid())
+  userId        String
+  wordKey       String    // "2:6:3" (surah:ayah:position)
+  surahNumber   Int
+  ayahNumber    Int
+  wordPosition  Int
+  totalAttempts Int       @default(0)
+  correctCount  Int       @default(0)
+  mistakeCount  Int       @default(0)
+  successRate   Float     @default(0) // 0.0-1.0
+  streak        Int       @default(0) // consecutive correct
+  lastCorrect   DateTime?
+  lastMistake   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wordKey])
+  @@index([userId, surahNumber, ayahNumber])
+  @@index([userId, successRate])
 }
 
 // ===== Quran Reference Data =====

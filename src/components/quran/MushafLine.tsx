@@ -8,6 +8,10 @@ import type {
 
 import type { QPCVersion } from "@/lib/fonts/qpc-fonts";
 import { cn } from "@/lib/utils";
+import type {
+  WeaknessLevel,
+  WordFeedbackData,
+} from "@/hooks/use-word-feedback";
 
 import { MushafWord } from "./MushafWord";
 
@@ -23,6 +27,8 @@ export interface MushafLineProps {
   hintWordKeys?: Map<string, string>;
   currentAyahWordKeys?: Set<string>;
   mistakeDetailsMap?: Map<string, { recitedWord?: string }>;
+  weaknessLevels?: Map<string, WeaknessLevel>;
+  wordHistories?: Map<string, WordFeedbackData>;
   onWordClick?: (word: MushafWordType) => void;
   onWordHover?: (word: MushafWordType | null) => void;
   fontSize?: number;
@@ -44,6 +50,8 @@ export const MushafLine = memo(function MushafLine({
   hintWordKeys,
   currentAyahWordKeys,
   mistakeDetailsMap,
+  weaknessLevels,
+  wordHistories,
   onWordClick,
   onWordHover,
   fontSize,
@@ -84,6 +92,8 @@ export const MushafLine = memo(function MushafLine({
           hintWordKeys={hintWordKeys}
           currentAyahWordKeys={currentAyahWordKeys}
           mistakeDetailsMap={mistakeDetailsMap}
+          weaknessLevels={weaknessLevels}
+          wordHistories={wordHistories}
           onWordClick={onWordClick}
           onWordHover={onWordHover}
           fontSize={fontSize}
@@ -219,6 +229,8 @@ interface AyahLineProps {
   hintWordKeys?: Map<string, string>;
   currentAyahWordKeys?: Set<string>;
   mistakeDetailsMap?: Map<string, { recitedWord?: string }>;
+  weaknessLevels?: Map<string, WeaknessLevel>;
+  wordHistories?: Map<string, WordFeedbackData>;
   onWordClick?: (word: MushafWordType) => void;
   onWordHover?: (word: MushafWordType | null) => void;
   fontSize?: number;
@@ -237,6 +249,8 @@ function AyahLine({
   hintWordKeys,
   currentAyahWordKeys,
   mistakeDetailsMap,
+  weaknessLevels,
+  wordHistories,
   onWordClick,
   onWordHover,
   fontSize,
@@ -270,6 +284,8 @@ function AyahLine({
               : undefined
           }
           mistakeDetail={mistakeDetailsMap?.get(word.wordKey)}
+          weaknessLevel={weaknessLevels?.get(word.wordKey)}
+          wordHistory={wordHistories?.get(word.wordKey)}
           onClick={onWordClick}
           onHover={onWordHover}
         />

@@ -131,22 +131,20 @@ export function usePostSessionGamification() {
             }),
           });
 
-          // Review each card with the session accuracy
-          const reviewPromises = [];
+          // Batch review all cards in a single request
+          const cards = [];
           for (let ayah = params.startAyah; ayah <= params.endAyah; ayah++) {
-            reviewPromises.push(
-              fetch("/api/progress/srs", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  surahNumber: params.surahNumber,
-                  ayahNumber: ayah,
-                  accuracy: params.accuracy,
-                }),
-              })
-            );
+            cards.push({
+              surahNumber: params.surahNumber,
+              ayahNumber: ayah,
+              accuracy: params.accuracy,
+            });
           }
-          await Promise.all(reviewPromises);
+          await fetch("/api/progress/srs", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cards }),
+          });
         } catch (err) {
           console.error("[Gamification] Failed to update FSRS cards:", err);
         }

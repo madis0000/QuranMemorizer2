@@ -16,6 +16,10 @@ import {
 } from "@/lib/fonts/qpc-fonts";
 import { toArabicNumber } from "@/lib/quran/mushaf-layout";
 import { cn } from "@/lib/utils";
+import type {
+  WeaknessLevel,
+  WordFeedbackData,
+} from "@/hooks/use-word-feedback";
 
 import { MushafLine } from "./MushafLine";
 
@@ -32,6 +36,8 @@ export interface MushafPageProps {
   hintWordKeys?: Map<string, string>;
   currentAyahWordKeys?: Set<string>;
   mistakeDetailsMap?: Map<string, { recitedWord?: string }>;
+  weaknessLevels?: Map<string, WeaknessLevel>;
+  wordHistories?: Map<string, WordFeedbackData>;
   onWordClick?: (word: MushafWordType) => void;
   onWordHover?: (word: MushafWordType | null) => void;
   className?: string;
@@ -53,6 +59,8 @@ export const MushafPage = memo(function MushafPage({
   hintWordKeys,
   currentAyahWordKeys,
   mistakeDetailsMap,
+  weaknessLevels,
+  wordHistories,
   onWordClick,
   onWordHover,
   className,
@@ -199,6 +207,8 @@ export const MushafPage = memo(function MushafPage({
               hintWordKeys={hintWordKeys}
               currentAyahWordKeys={currentAyahWordKeys}
               mistakeDetailsMap={mistakeDetailsMap}
+              weaknessLevels={weaknessLevels}
+              wordHistories={wordHistories}
               onWordClick={onWordClick}
               onWordHover={onWordHover}
             />
@@ -266,6 +276,8 @@ export const MushafPage = memo(function MushafPage({
             hiddenWordKeys={hiddenWordKeys}
             currentAyahWordKeys={currentAyahWordKeys}
             mistakeDetailsMap={mistakeDetailsMap}
+            weaknessLevels={weaknessLevels}
+            wordHistories={wordHistories}
             onWordClick={onWordClick}
             onWordHover={onWordHover}
             className="flex-1"

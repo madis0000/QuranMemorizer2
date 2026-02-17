@@ -28,6 +28,12 @@ import {
   type AyahOnPage,
 } from "@/lib/memorization/mushaf-hide-bridge";
 import { useAccuratePage } from "@/hooks/use-mushaf-layout";
+import {
+  computeWeaknessLevel,
+  useWordFeedback,
+  type WeaknessLevel,
+  type WordFeedbackData,
+} from "@/hooks/use-word-feedback";
 import { useQuranStore } from "@/stores/quranStore";
 import { useSessionStore, type HideMode } from "@/stores/sessionStore";
 import { MushafPage, MushafPageSkeleton } from "@/components/quran/MushafPage";
@@ -352,6 +358,26 @@ export function MushafModePanel({
   const session = useSessionStore();
   const nav = useMushafNav(surahNumber, startAyah, endAyah);
 
+  // Fetch per-word historical feedback for this session range
+  const { data: wordFeedbackMap } = useWordFeedback(
+    surahNumber,
+    startAyah,
+    endAyah
+  );
+
+  // Compute weakness levels + word histories Maps for MushafPage
+  const { weaknessLevels, wordHistories } = useMemo(() => {
+    const levels = new Map<string, WeaknessLevel>();
+    const histories = new Map<string, WordFeedbackData>();
+    if (!wordFeedbackMap)
+      return { weaknessLevels: levels, wordHistories: histories };
+    for (const [wordKey, fb] of wordFeedbackMap) {
+      levels.set(wordKey, computeWeaknessLevel(fb));
+      histories.set(wordKey, fb);
+    }
+    return { weaknessLevels: levels, wordHistories: histories };
+  }, [wordFeedbackMap]);
+
   // Accumulated comparison results per ayah key (ref to avoid setState-in-effect)
   const accumulatedResultsRef = useRef<Map<string, ComparisonResult>>(
     new Map()
@@ -421,6 +447,17 @@ export function MushafModePanel({
     [surahNumber, startAyah, endAyah]
   );
 
+  // Compute the set of word keys belonging to the current ayah (for ring glow + weak word reveal)
+  const currentAyahWordKeys = useMemo(() => {
+    if (!nav.pageData || !nav.currentAyah) return undefined;
+    const keys = getWordKeysForAyah(
+      nav.pageData,
+      nav.currentAyah.surahNumber,
+      nav.currentAyah.ayahNumber
+    );
+    return new Set(keys);
+  }, [nav.pageData, nav.currentAyah]);
+
   const hiddenWordKeys = useMemo(() => {
     if (!nav.pageData) return new Set<string>();
     const hidden = computeHiddenWordKeys(
@@ -434,6 +471,14 @@ export function MushafModePanel({
     // Live overlay: reveal words that have been recited (correct or wrong)
     if (liveCorrectKeys) for (const k of liveCorrectKeys) hidden.delete(k);
     if (liveMistakeKeys) for (const k of liveMistakeKeys) hidden.delete(k);
+    // Auto-reveal weak words when user starts reciting the current ayah
+    if (isListening && currentAyahWordKeys && weaknessLevels.size > 0) {
+      for (const k of currentAyahWordKeys) {
+        if (weaknessLevels.get(k) === "weak" && hidden.has(k)) {
+          hidden.delete(k);
+        }
+      }
+    }
     // Note: liveCurrentKey is NOT removed from hidden — it only affects the
     // "current word" glow styling once the word becomes visible through
     // recitation. Revealing the tracking cursor would defeat full_hide mode.
@@ -447,6 +492,9 @@ export function MushafModePanel({
     ayahRange,
     liveCorrectKeys,
     liveMistakeKeys,
+    isListening,
+    currentAyahWordKeys,
+    weaknessLevels,
   ]);
 
   const hintWordKeys = useMemo(() => {
@@ -515,17 +563,6 @@ export function MushafModePanel({
     return undefined;
   }, [nav.currentAyah, nav.pageData, liveCurrentKey]);
 
-  // Compute the set of word keys belonging to the current ayah (for ring glow)
-  const currentAyahWordKeys = useMemo(() => {
-    if (!nav.pageData || !nav.currentAyah) return undefined;
-    const keys = getWordKeysForAyah(
-      nav.pageData,
-      nav.currentAyah.surahNumber,
-      nav.currentAyah.ayahNumber
-    );
-    return new Set(keys);
-  }, [nav.pageData, nav.currentAyah]);
-
   // Merge live mistake details into a map for tooltip rendering on mushaf words
   const mistakeDetailsMap = useMemo(() => {
     if (!liveMistakeDetails || liveMistakeDetails.size === 0) return undefined;
@@ -566,6 +603,8 @@ export function MushafModePanel({
           currentWordKey={currentWordKey}
           currentAyahWordKeys={currentAyahWordKeys}
           mistakeDetailsMap={mistakeDetailsMap}
+          weaknessLevels={weaknessLevels}
+          wordHistories={wordHistories}
           onWordClick={handleWordClick}
           showPageNumber
           showJuzInfo

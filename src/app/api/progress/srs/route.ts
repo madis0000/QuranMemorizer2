@@ -196,12 +196,90 @@ export async function POST(request: Request) {
 }
 
 /**
+ * Review a single card: find/create → compute FSRS → update DB.
+ * Returns the updated card.
+ */
+async function reviewSingleCard(
+  userId: string,
+  surahNumber: number,
+  ayahNumber: number,
+  accuracy: number,
+  explicitRating?: number
+) {
+  // Find the card
+  let prismaCard = await prisma.fSRSCard.findUnique({
+    where: {
+      userId_surahNumber_ayahNumber: { userId, surahNumber, ayahNumber },
+    },
+  });
+
+  // If card doesn't exist, create it (upsert pattern)
+  if (!prismaCard) {
+    const newCard = createCard(surahNumber, ayahNumber);
+    prismaCard = await prisma.fSRSCard.create({
+      data: {
+        userId,
+        surahNumber: newCard.surahNumber,
+        ayahNumber: newCard.ayahNumber,
+        due: new Date(newCard.due),
+        stability: newCard.stability,
+        difficulty: newCard.difficulty,
+        elapsedDays: newCard.elapsed_days,
+        scheduledDays: newCard.scheduled_days,
+        reps: newCard.reps,
+        lapses: newCard.lapses,
+        state: newCard.state,
+        lastReview: null,
+        totalReviews: newCard.totalReviews,
+        averageAccuracy: newCard.averageAccuracy,
+        category: newCard.category,
+      },
+    });
+  }
+
+  const card = prismaToSRSCard(prismaCard);
+  const rating =
+    explicitRating && explicitRating >= 1 && explicitRating <= 4
+      ? explicitRating
+      : accuracyToRating(accuracy);
+  const { card: updatedCard } = reviewCard(card, rating, accuracy);
+
+  // Update in database
+  await prisma.fSRSCard.update({
+    where: {
+      userId_surahNumber_ayahNumber: { userId, surahNumber, ayahNumber },
+    },
+    data: {
+      due: new Date(updatedCard.due),
+      stability: updatedCard.stability,
+      difficulty: updatedCard.difficulty,
+      elapsedDays: updatedCard.elapsed_days,
+      scheduledDays: updatedCard.scheduled_days,
+      reps: updatedCard.reps,
+      lapses: updatedCard.lapses,
+      state: updatedCard.state,
+      lastReview: updatedCard.last_review
+        ? new Date(updatedCard.last_review)
+        : null,
+      totalReviews: updatedCard.totalReviews,
+      averageAccuracy: updatedCard.averageAccuracy,
+    },
+  });
+
+  return { updatedCard, rating };
+}
+
+/**
  * PATCH /api/progress/srs
- * Review a card and update its schedule.
- * Body: { surahNumber, ayahNumber, accuracy, duration?, showOptions? }
+ * Review card(s) and update schedule.
  *
- * If showOptions=true, returns scheduling options for all 4 ratings
- * Otherwise, updates the card based on accuracy
+ * Single-card mode (backward compatible):
+ *   Body: { surahNumber, ayahNumber, accuracy, rating?, showOptions? }
+ *
+ * Batch mode (new):
+ *   Body: { cards: [{ surahNumber, ayahNumber, accuracy, rating? }, ...] }
+ *
+ * If showOptions=true (single-card only), returns scheduling options for all 4 ratings.
  */
 export async function PATCH(request: Request) {
   try {
@@ -210,13 +288,55 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const body = await request.json();
+
+    // --- Batch mode ---
+    if (Array.isArray(body.cards)) {
+      const cards = body.cards as Array<{
+        surahNumber: number;
+        ayahNumber: number;
+        accuracy: number;
+        rating?: number;
+      }>;
+
+      if (cards.length === 0) {
+        return NextResponse.json({ reviewed: 0 });
+      }
+
+      // Cap at 500 to prevent abuse
+      if (cards.length > 500) {
+        return NextResponse.json(
+          { error: "Batch size exceeds maximum of 500 cards" },
+          { status: 400 }
+        );
+      }
+
+      const results = await Promise.all(
+        cards.map((c) =>
+          reviewSingleCard(
+            session.user!.id!,
+            c.surahNumber,
+            c.ayahNumber,
+            c.accuracy,
+            c.rating
+          )
+        )
+      );
+
+      return NextResponse.json({
+        reviewed: results.length,
+        message: `Batch reviewed ${results.length} cards`,
+      });
+    }
+
+    // --- Single-card mode (backward compatible) ---
     const {
       surahNumber,
       ayahNumber,
       accuracy,
       rating: explicitRating,
       showOptions,
-    } = await request.json();
+    } = body;
 
     if (!surahNumber || !ayahNumber || accuracy === undefined) {
       return NextResponse.json(
@@ -227,45 +347,40 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Find the card
-    let prismaCard = await prisma.fSRSCard.findUnique({
-      where: {
-        userId_surahNumber_ayahNumber: {
-          userId: session.user.id,
-          surahNumber,
-          ayahNumber,
-        },
-      },
-    });
-
-    // If card doesn't exist, create it (upsert pattern)
-    if (!prismaCard) {
-      const newCard = createCard(surahNumber, ayahNumber);
-      prismaCard = await prisma.fSRSCard.create({
-        data: {
-          userId: session.user.id,
-          surahNumber: newCard.surahNumber,
-          ayahNumber: newCard.ayahNumber,
-          due: new Date(newCard.due),
-          stability: newCard.stability,
-          difficulty: newCard.difficulty,
-          elapsedDays: newCard.elapsed_days,
-          scheduledDays: newCard.scheduled_days,
-          reps: newCard.reps,
-          lapses: newCard.lapses,
-          state: newCard.state,
-          lastReview: null,
-          totalReviews: newCard.totalReviews,
-          averageAccuracy: newCard.averageAccuracy,
-          category: newCard.category,
-        },
-      });
-    }
-
-    const card = prismaToSRSCard(prismaCard);
-
     // If user just wants to see options without committing
     if (showOptions) {
+      let prismaCard = await prisma.fSRSCard.findUnique({
+        where: {
+          userId_surahNumber_ayahNumber: {
+            userId: session.user.id,
+            surahNumber,
+            ayahNumber,
+          },
+        },
+      });
+      if (!prismaCard) {
+        const newCard = createCard(surahNumber, ayahNumber);
+        prismaCard = await prisma.fSRSCard.create({
+          data: {
+            userId: session.user.id,
+            surahNumber: newCard.surahNumber,
+            ayahNumber: newCard.ayahNumber,
+            due: new Date(newCard.due),
+            stability: newCard.stability,
+            difficulty: newCard.difficulty,
+            elapsedDays: newCard.elapsed_days,
+            scheduledDays: newCard.scheduled_days,
+            reps: newCard.reps,
+            lapses: newCard.lapses,
+            state: newCard.state,
+            lastReview: null,
+            totalReviews: newCard.totalReviews,
+            averageAccuracy: newCard.averageAccuracy,
+            category: newCard.category,
+          },
+        });
+      }
+      const card = prismaToSRSCard(prismaCard);
       const options = getSchedulingOptions(card);
       return NextResponse.json({
         card,
@@ -274,40 +389,14 @@ export async function PATCH(request: Request) {
       });
     }
 
-    // Use explicit rating (1-4) if provided, otherwise derive from accuracy
-    const rating =
-      explicitRating && explicitRating >= 1 && explicitRating <= 4
-        ? explicitRating
-        : accuracyToRating(accuracy);
-    const { card: updatedCard } = reviewCard(card, rating, accuracy);
+    const { updatedCard, rating } = await reviewSingleCard(
+      session.user.id,
+      surahNumber,
+      ayahNumber,
+      accuracy,
+      explicitRating
+    );
 
-    // Update in database
-    await prisma.fSRSCard.update({
-      where: {
-        userId_surahNumber_ayahNumber: {
-          userId: session.user.id,
-          surahNumber,
-          ayahNumber,
-        },
-      },
-      data: {
-        due: new Date(updatedCard.due),
-        stability: updatedCard.stability,
-        difficulty: updatedCard.difficulty,
-        elapsedDays: updatedCard.elapsed_days,
-        scheduledDays: updatedCard.scheduled_days,
-        reps: updatedCard.reps,
-        lapses: updatedCard.lapses,
-        state: updatedCard.state,
-        lastReview: updatedCard.last_review
-          ? new Date(updatedCard.last_review)
-          : null,
-        totalReviews: updatedCard.totalReviews,
-        averageAccuracy: updatedCard.averageAccuracy,
-      },
-    });
-
-    // Return updated card with scheduling options
     const options = getSchedulingOptions(updatedCard);
 
     return NextResponse.json({

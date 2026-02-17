@@ -52,7 +52,7 @@ import { SessionSummaryEnhanced } from "./_components/SessionSummaryEnhanced";
 import { SmartDashboard } from "./_components/SmartDashboard";
 import { useComboSystem } from "./_hooks/use-combo-system";
 import { useHapticFeedback } from "./_hooks/use-haptic-feedback";
-import { computeLiveTracking } from "./_lib/live-tracking";
+import { computeLiveTracking, type LiveWordState } from "./_lib/live-tracking";
 
 // ---------- helpers for tree visualization ----------
 
@@ -234,6 +234,25 @@ export default function MemorizePage() {
   } | null>(null);
   const ayahStartTimeRef = useRef(timestamp());
 
+  // Accumulate per-word feedback across the session for batch POST at end
+  const wordFeedbackRef = useRef<
+    Map<
+      string,
+      {
+        wordKey: string;
+        surahNumber: number;
+        ayahNumber: number;
+        wordPosition: number;
+        correct: boolean;
+      }
+    >
+  >(new Map());
+
+  // Ref to latest confirmedResult for use in handleEndSession (defined before confirmedResult memo)
+  const confirmedResultRef = useRef<ReturnType<
+    typeof computeLiveTracking
+  > | null>(null);
+
   // Gate transcript during ayah transitions
   const isTransitioningRef = useRef(false);
   const muteUntilRef = useRef(0);
@@ -260,6 +279,7 @@ export default function MemorizePage() {
       setComboState({ combo: 0, multiplier: 1, milestone: null });
       resetCombo();
       ayahStartTimeRef.current = timestamp();
+      wordFeedbackRef.current = new Map();
       resetVoice();
 
       createSession.mutate(
@@ -288,6 +308,40 @@ export default function MemorizePage() {
   const handleEndSession = useCallback(async () => {
     if (finalText) {
       await compareAndScore();
+    }
+
+    // Collect final ayah's word states before ending (mushaf mode)
+    const latestConfirmed = confirmedResultRef.current;
+    if (
+      memorizeMode === "mushaf" &&
+      latestConfirmed &&
+      latestConfirmed.wordStates.length > 0
+    ) {
+      for (const ws of latestConfirmed.wordStates) {
+        if (ws.status === "correct" || ws.status === "wrong") {
+          const parts = ws.wordKey.split(":");
+          wordFeedbackRef.current.set(ws.wordKey, {
+            wordKey: ws.wordKey,
+            surahNumber: parseInt(parts[0]),
+            ayahNumber: parseInt(parts[1]),
+            wordPosition: parseInt(parts[2]),
+            correct: ws.status === "correct",
+          });
+        }
+      }
+    }
+
+    // Fire-and-forget: persist word feedback
+    if (wordFeedbackRef.current.size > 0) {
+      const words = Array.from(wordFeedbackRef.current.values());
+      wordFeedbackRef.current = new Map();
+      fetch("/api/progress/word-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ words }),
+      }).catch((err) =>
+        console.error("[WordFeedback] Failed to persist:", err)
+      );
     }
 
     haptic.onSessionComplete();
@@ -351,6 +405,7 @@ export default function MemorizePage() {
   }, [
     finalText,
     compareAndScore,
+    memorizeMode,
     session,
     createSession,
     completeSessionMutation,
@@ -429,6 +484,8 @@ export default function MemorizePage() {
     () => computeLiveTracking(mushafOriginalWords, mushafWordKeys, finalText),
     [mushafOriginalWords, mushafWordKeys, finalText]
   );
+  // Keep ref in sync for handleEndSession (which is defined before confirmedResult)
+  confirmedResultRef.current = confirmedResult;
 
   const handleNextAyah = async () => {
     isTransitioningRef.current = true;
@@ -446,6 +503,13 @@ export default function MemorizePage() {
       }
     } else {
       const nextAyahNum = Math.min(session.currentAyah + 1, session.endAyah);
+      // Safety: if already at last ayah, don't advance page to wrong surah
+      if (nextAyahNum === session.currentAyah && memorizeMode === "mushaf") {
+        // At the last ayah — don't advance the page. The auto-advance
+        // or completion card should handle transitioning to the next surah.
+        isTransitioningRef.current = false;
+        return;
+      }
       session.nextAyah();
       if (memorizeMode === "mushaf") {
         const currentState = useSessionStore.getState();
@@ -624,14 +688,33 @@ export default function MemorizePage() {
     ayahStartTimeRef.current = timestamp();
 
     session.navigateToVerse(nextSurah, 1);
-    useSessionStore.setState({
+
+    // Base state updates for any mode
+    const stateUpdate: Partial<{
+      endAyah: number;
+      startAyah: number;
+      ayahHistory: Record<string, never>;
+      combo: number;
+      currentPageNumber: number;
+      mushafCurrentAyahKey: string | null;
+      revealedWordKeys: Set<string>;
+    }> = {
       endAyah: nextAyahCount,
       startAyah: 1,
       ayahHistory: {},
       combo: 0,
-    });
+    };
+
+    // Mushaf mode: update page + reset revealed words for new surah
+    if (memorizeMode === "mushaf") {
+      stateUpdate.currentPageNumber = getPageForAyah(nextSurah, 1);
+      stateUpdate.mushafCurrentAyahKey = null;
+      stateUpdate.revealedWordKeys = new Set<string>();
+    }
+
+    useSessionStore.setState(stateUpdate);
     setAutoStartMic(true);
-  }, [session, resetVoice]);
+  }, [session, resetVoice, memorizeMode]);
 
   // --- Mid-session navigation handler ---
   const handleNavigateToVerse = useCallback(
@@ -695,6 +778,22 @@ export default function MemorizePage() {
       // Record in store
       session.recordAyahAttempt(key, acc, timeMs);
 
+      // Collect per-word feedback from confirmedResult (mushaf mode)
+      if (isMushafActive && confirmedResult.wordStates.length > 0) {
+        for (const ws of confirmedResult.wordStates) {
+          if (ws.status === "correct" || ws.status === "wrong") {
+            const parts = ws.wordKey.split(":");
+            wordFeedbackRef.current.set(ws.wordKey, {
+              wordKey: ws.wordKey,
+              surahNumber: parseInt(parts[0]),
+              ayahNumber: parseInt(parts[1]),
+              wordPosition: parseInt(parts[2]),
+              correct: ws.status === "correct",
+            });
+          }
+        }
+      }
+
       // Combo + feedback
       const combo = registerCorrectAyah(acc);
       setComboState({
@@ -738,6 +837,9 @@ export default function MemorizePage() {
 
   // Auto-advance (mushaf mode only): advance after completion with delay
   const prevCompleteRef = useRef(false);
+  const handleContinueNextSurahRef = useRef(handleContinueNextSurah);
+
+  handleContinueNextSurahRef.current = handleContinueNextSurah;
   useEffect(() => {
     if (
       autoAdvance &&
@@ -747,10 +849,17 @@ export default function MemorizePage() {
       !prevCompleteRef.current
     ) {
       prevCompleteRef.current = true;
+      const isLastAyahInRange =
+        !isCrossSurah && session.currentAyah >= session.endAyah;
       const timer = setTimeout(() => {
         setCompletionCard(null);
         ayahStartTimeRef.current = timestamp();
-        handleNextAyahRef.current();
+        if (isLastAyahInRange) {
+          // Last ayah of surah — auto-continue to next surah
+          handleContinueNextSurahRef.current();
+        } else {
+          handleNextAyahRef.current();
+        }
       }, 1200);
       return () => clearTimeout(timer);
     }
@@ -762,6 +871,9 @@ export default function MemorizePage() {
     confirmedResult.accuracy,
     autoAdvance,
     isMushafActive,
+    session.currentAyah,
+    session.endAyah,
+    isCrossSurah,
   ]);
 
   // Auto-expand/collapse overlay
@@ -802,8 +914,16 @@ export default function MemorizePage() {
       if (!nextFirst) {
         if (extraWords.length > 0) {
           firstWordTriggeredRef.current = true;
+          const isLastAyahInRange =
+            !isCrossSurah &&
+            useSessionStore.getState().currentAyah >=
+              useSessionStore.getState().endAyah;
           const timer = setTimeout(() => {
-            handleNextAyahRef.current();
+            if (isLastAyahInRange) {
+              handleContinueNextSurahRef.current();
+            } else {
+              handleNextAyahRef.current();
+            }
           }, 400);
           return () => clearTimeout(timer);
         }

@@ -102,7 +102,11 @@ export function compareRecitation(
 ): ComparisonResult {
   const config = SENSITIVITY_CONFIG[sensitivity];
 
-  const originalWords = splitIntoWords(originalText);
+  // Filter out ornamental Tajweed marks (e.g. U+06DB ۛ) that appear as standalone
+  // "words" in Quran text but are never spoken — they normalize to empty strings.
+  const originalWords = splitIntoWords(originalText).filter(
+    (w) => normalizeArabic(w).length > 0
+  );
   const recitedWords = splitIntoWords(recitedText);
 
   const totalWords = originalWords.length;

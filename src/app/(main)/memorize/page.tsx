@@ -211,6 +211,8 @@ export default function MemorizePage() {
     reset: resetVoice,
   } = useVoiceRecognition({
     originalText,
+    surahNumber: session.surahNumber,
+    ayahNumber: session.currentAyah,
     sensitivity: session.mistakeSensitivity,
     onComparisonResult: setComparisonResult,
   });
@@ -327,7 +329,7 @@ export default function MemorizePage() {
             mistakeCount: summary.mistakes.length,
             mistakes: mistakeData,
           },
-          { onSuccess: onGamification }
+          { onSuccess: onGamification, onError: () => onGamification() }
         );
       } else {
         createSession.mutate(
@@ -342,7 +344,7 @@ export default function MemorizePage() {
             mistakeCount: summary.mistakes.length,
             mistakes: mistakeData,
           },
-          { onSuccess: onGamification }
+          { onSuccess: onGamification, onError: () => onGamification() }
         );
       }
     }
@@ -395,6 +397,11 @@ export default function MemorizePage() {
       },
       {
         onSuccess: () => {
+          state.discardSession();
+          router.push("/sessions");
+        },
+        onError: () => {
+          // Session may already be completed/discarded — still clean up locally
           state.discardSession();
           router.push("/sessions");
         },

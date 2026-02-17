@@ -1,3 +1,4 @@
+import { SURAH_AYAH_COUNTS } from "@/data/hizb-data";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -661,7 +662,7 @@ export const useSessionStore = create<SessionState>()(
           // Extend range if outside current bounds
           if (surah !== state.surahNumber) {
             newState.startAyah = 1;
-            newState.endAyah = 999; // Will be clamped by actual surah length
+            newState.endAyah = SURAH_AYAH_COUNTS[surah] ?? 286;
           } else {
             if (ayah < state.startAyah) newState.startAyah = ayah;
             if (ayah > state.endAyah) newState.endAyah = ayah;

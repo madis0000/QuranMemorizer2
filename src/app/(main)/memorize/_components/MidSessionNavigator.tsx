@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -70,10 +71,10 @@ export function MidSessionNavigator({
       <SheetContent side="left" className="w-80 sm:w-96 p-0 flex flex-col">
         <SheetHeader className="p-4 pb-2">
           <SheetTitle className="text-sm">Navigate to Verse</SheetTitle>
-          <p className="text-xs text-muted-foreground">
+          <SheetDescription className="text-xs">
             Currently at {SURAH_NAMES[currentSurah]} {currentSurah}:
             {currentAyah}
-          </p>
+          </SheetDescription>
         </SheetHeader>
 
         {selectedSurah === null ? (

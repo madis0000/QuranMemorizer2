@@ -18,7 +18,7 @@ import {
 } from "@/components/voice/VoiceRecorder";
 
 import type { LiveTrackingResult } from "../_lib/live-tracking";
-import { LiveTrackerPanel } from "./LiveTrackerPanel";
+import { LiveTrackerBar } from "./LiveTrackerBar";
 
 interface MushafLayoutProps {
   // Session data
@@ -132,9 +132,10 @@ export function MushafLayout({
 
   return (
     <div className="flex-1 min-h-0 flex bg-[#F2F0ED] dark:bg-[#0A1210]">
-      {/* Left: Live Tracker (lg+) */}
-      <div className="hidden lg:flex flex-col w-56 shrink-0 border-r border-[#D1E0D8]/40 dark:border-[#1E3228] bg-[#F8FAF9] dark:bg-[#121E18] overflow-y-auto">
-        <LiveTrackerPanel
+      {/* Center: Mushaf page with overlay + action bar */}
+      <main className="flex-1 min-w-0 flex flex-col">
+        {/* Live Tracker Bar — compact horizontal replacement for old left panel */}
+        <LiveTrackerBar
           liveResult={liveResult}
           surahNumber={surahNumber}
           ayahNumber={currentAyah}
@@ -147,10 +148,6 @@ export function MushafLayout({
           autoAdvance={autoAdvance}
           onAutoAdvanceChange={onAutoAdvanceChange}
         />
-      </div>
-
-      {/* Center: Mushaf page with overlay + action bar */}
-      <main className="flex-1 min-w-0 flex flex-col">
         {/* Scrollable mushaf area */}
         <div className="flex-1 min-h-0 overflow-y-auto relative">
           {/* Desktop view */}
@@ -241,7 +238,6 @@ export function MushafLayout({
             <HideQuickToggles />
             <div className="w-px h-8 bg-[#D1E0D8]/60 dark:bg-[#1E3228] shrink-0" />
             <VoiceRecorder
-              key={`${surahNumber}:${currentAyah}`}
               onTranscript={onTranscript}
               onRecordingChange={onRecordingChange}
               onEngineChange={onEngineChange}

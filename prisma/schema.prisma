@@ -494,6 +494,7 @@ model CircleActivity {
   circle HifzCircle @relation(fields: [circleId], references: [id], onDelete: Cascade)
 
   @@index([circleId, createdAt])
+  @@index([userId])
 }
 
 // ===== Similar Verse Pairs =====

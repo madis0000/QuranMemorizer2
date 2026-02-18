@@ -1,69 +1,50 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 
+import { apiError, handleApiError, validationError } from "@/lib/api/errors";
 import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
-interface RegisterRequestBody {
-  name?: string;
-  email?: string;
-  password?: string;
-}
+const RegisterSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100),
+  email: z.string().trim().toLowerCase().email("Invalid email format"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128),
+});
 
 export async function POST(request: Request) {
   try {
-    const body: RegisterRequestBody = await request.json();
-    const { name, email, password } = body;
-
-    // Validate required fields
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        {
-          message: "Missing required fields.",
-          errors: {
-            ...(!name ? { name: "Name is required." } : {}),
-            ...(!email ? { email: "Email is required." } : {}),
-            ...(!password ? { password: "Password is required." } : {}),
-          },
-        },
-        { status: 400 }
-      );
+    // Rate limit registration by IP (stricter: 10 per minute)
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "anonymous";
+    const rl = await rateLimit(`register:${ip}`, 10, 60);
+    if (!rl.allowed) {
+      return rateLimitResponse();
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        {
-          message: "Invalid email format.",
-          errors: { email: "Please enter a valid email address." },
-        },
-        { status: 400 }
-      );
+    const body = await request.json();
+    const parsed = RegisterSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return validationError(parsed.error);
     }
 
-    // Validate password length
-    if (password.length < 8) {
-      return NextResponse.json(
-        {
-          message: "Password too short.",
-          errors: { password: "Password must be at least 8 characters." },
-        },
-        { status: 400 }
-      );
-    }
+    const { name, email, password } = parsed.data;
 
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email },
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        {
-          message: "An account with this email already exists.",
-          errors: { email: "An account with this email already exists." },
-        },
-        { status: 409 }
+      return apiError(
+        "VALIDATION_ERROR",
+        "An account with this email already exists"
       );
     }
 
@@ -73,8 +54,8 @@ export async function POST(request: Request) {
     // Create the user
     const user = await prisma.user.create({
       data: {
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
+        name,
+        email,
         hashedPassword,
       },
       select: {
@@ -84,12 +65,10 @@ export async function POST(request: Request) {
       },
     });
 
+    logger.info({ userId: user.id }, "User registered");
+
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
-    console.error("Registration error:", error);
-    return NextResponse.json(
-      { message: "Internal server error. Please try again later." },
-      { status: 500 }
-    );
+    return handleApiError(error, "POST /api/auth/register");
   }
 }

@@ -7,20 +7,30 @@ services:
     ports:
       - "3002:3000"
     environment:
-      # Connect to shared PostgreSQL via shared-infra-network
-      DATABASE_URL: "postgresql://postgres:MadisTrader2026@shared-postgres:5432/quranmemorizer2"
-      # Connect to shared Redis via shared-infra-network
-      REDIS_URL: "redis://:MadisTrader2026@shared-redis:6379"
-      # NextAuth
-      NEXTAUTH_SECRET: "quran-memorizer-dev-secret-change-in-production"
-      NEXTAUTH_URL: "http://localhost:3002"
-      # Auth
+      DATABASE_URL: "${DATABASE_URL}"
+      REDIS_URL: "${REDIS_URL}"
+      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
+      NEXTAUTH_URL: "${NEXTAUTH_URL:-http://localhost:3002}"
       AUTH_TRUST_HOST: "true"
-      # Node
       NODE_ENV: "production"
+    env_file:
+      - .env
     networks:
       - shared-infra-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 256M
 
 networks:
   shared-infra-network:

@@ -62,7 +62,7 @@ export function TopNavBar() {
   );
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[#D1E0D8] bg-[#F0F5F2]/80 backdrop-blur-xl dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/80 hidden lg:block">
+    <nav aria-label="Main navigation" className="sticky top-0 z-50 border-b border-[#D1E0D8] bg-[#F0F5F2]/80 backdrop-blur-xl dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/80 hidden lg:block">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 h-16">
         {/* Left: Logo */}
         <Link
@@ -84,6 +84,7 @@ export function TopNavBar() {
               <Link
                 key={item.nameKey}
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "relative px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200",
                   isActive
@@ -93,7 +94,7 @@ export function TopNavBar() {
               >
                 {t(item.nameKey)}
                 {isActive && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-[#059669] dark:bg-[#00E5A0] dark:shadow-[0_0_6px_rgba(0,229,160,0.5)]" />
+                  <span className="absolute bottom-0 start-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-[#059669] dark:bg-[#00E5A0] dark:shadow-[0_0_6px_rgba(0,229,160,0.5)]" />
                 )}
               </Link>
             );
@@ -113,7 +114,7 @@ export function TopNavBar() {
                 {t("nav.more") || "More"}
                 <ChevronDown className="h-3.5 w-3.5" />
                 {isSecondaryActive && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-[#059669] dark:bg-[#00E5A0]" />
+                  <span className="absolute bottom-0 start-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-[#059669] dark:bg-[#00E5A0]" />
                 )}
               </button>
             </DropdownMenuTrigger>
@@ -144,7 +145,7 @@ export function TopNavBar() {
           <GamificationStrip />
           <div className="h-4 w-px bg-border" />
           <ThemeToggle />
-          <Link href="/settings">
+          <Link href="/settings" aria-label="Settings">
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Settings className="h-4 w-4 text-muted-foreground" />
             </Button>

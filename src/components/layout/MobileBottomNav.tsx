@@ -62,7 +62,7 @@ export function MobileTopBar() {
   return (
     <>
       {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 border-b border-[#D1E0D8] bg-[#F0F5F2]/90 backdrop-blur-xl dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/90">
+      <div className="lg:hidden fixed top-0 inset-x-0 z-50 h-14 border-b border-[#D1E0D8] bg-[#F0F5F2]/90 backdrop-blur-xl dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/90">
         <div className="flex h-full items-center justify-between px-4">
           <Link
             href="/"
@@ -84,6 +84,8 @@ export function MobileTopBar() {
               size="icon"
               className="h-8 w-8"
               onClick={() => setMenuOpen(!menuOpen)}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
             >
               {menuOpen ? (
                 <X className="h-5 w-5" />
@@ -102,7 +104,7 @@ export function MobileTopBar() {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setMenuOpen(false)}
           />
-          <nav className="relative bg-[#F0F5F2]/95 backdrop-blur-xl dark:bg-[#080F0B]/95 w-full h-full py-6 px-6 space-y-1 overflow-y-auto">
+          <nav aria-label="Site navigation" className="relative bg-[#F0F5F2]/95 backdrop-blur-xl dark:bg-[#080F0B]/95 w-full h-full py-6 px-6 space-y-1 overflow-y-auto">
             {allNavItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
@@ -110,6 +112,7 @@ export function MobileTopBar() {
                   key={item.nameKey}
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                     isActive
@@ -134,7 +137,7 @@ export function MobileBottomNav() {
   const { t } = useTranslation();
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[#D1E0D8] bg-[#F0F5F2]/90 backdrop-blur-xl dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/90 pb-safe">
+    <nav aria-label="Bottom navigation" className="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t border-[#D1E0D8] bg-[#F0F5F2]/90 backdrop-blur-xl dark:border-[#00E5A0]/10 dark:bg-[#080F0B]/90 pb-safe">
       <div className="flex h-16 items-center justify-around px-2">
         {bottomTabs.map((item) => {
           const isActive = pathname.startsWith(item.href);
@@ -142,6 +145,7 @@ export function MobileBottomNav() {
             <Link
               key={item.nameKey}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-0 flex-1",
                 isActive
@@ -162,7 +166,7 @@ export function MobileBottomNav() {
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }
 
@@ -195,6 +199,7 @@ function MobileThemeToggle() {
       size="icon"
       className="h-8 w-8"
       onClick={handleToggle}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
       {isDark ? (
         <Sun className="h-4 w-4 text-muted-foreground" />

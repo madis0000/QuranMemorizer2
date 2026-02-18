@@ -1,92 +1,96 @@
-import { NextResponse, type NextRequest } from "next/server";
-import type {
-  MistakeSeverity,
-  MistakeType,
-  SessionMode,
-  SessionStatus,
-} from "@prisma/client";
+import { NextResponse } from "next/server";
+import type { MistakeType, SessionMode, SessionStatus } from "@prisma/client";
+import { z } from "zod";
 
-import { auth } from "@/lib/auth";
+import { validationError } from "@/lib/api/errors";
+import { withAuth } from "@/lib/api/with-auth";
 import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
+
+// --- Zod schemas ---
+
+const MistakeSchema = z.object({
+  surahNumber: z.number().int().min(1).max(114),
+  ayahNumber: z.number().int().min(1),
+  wordIndex: z.number().int().min(0),
+  type: z.enum(["WRONG_WORD", "SKIPPED", "ADDED", "TASHKEEL", "ORDER"]),
+  recitedText: z.string().nullish(),
+  correctText: z.string().min(1),
+  severity: z.enum(["MINOR", "MAJOR"]).optional().default("MINOR"),
+});
+
+const CreateSessionSchema = z.object({
+  surahNumber: z.number().int().min(1).max(114),
+  startAyah: z.number().int().min(1),
+  endAyah: z.number().int().min(1),
+  pageNumber: z.number().int().min(1).max(604).nullish(),
+  mode: z.enum(["READ", "MEMORIZE", "LISTEN", "REVIEW"]),
+  duration: z.number().int().min(0),
+  accuracy: z.number().min(0).max(100).nullish(),
+  wordsRecited: z.number().int().min(0).optional().default(0),
+  mistakeCount: z.number().int().min(0).optional().default(0),
+  mistakes: z.array(MistakeSchema).optional(),
+  status: z.enum(["ACTIVE", "COMPLETED"]).optional().default("COMPLETED"),
+  stateSnapshot: z.unknown().nullish(),
+  targetType: z.string().nullish(),
+});
 
 // GET /api/progress/sessions - Fetch user's recitation sessions with pagination
-export async function GET(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userId = session.user.id;
+export const GET = withAuth(async (request, { userId }) => {
+  const { searchParams } = new URL(request.url);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "20", 10), 100);
+  const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
+  const mode = searchParams.get("mode") as SessionMode | null;
+  const statusParam = searchParams.get("status");
 
-    const { searchParams } = new URL(request.url);
-    const limit = Math.min(
-      parseInt(searchParams.get("limit") || "20", 10),
-      100
-    );
-    const offset = parseInt(searchParams.get("offset") || "0", 10);
-    const mode = searchParams.get("mode") as SessionMode | null;
-    const statusParam = searchParams.get("status");
-
-    // Parse status filter: comma-separated list (e.g., "ACTIVE,PAUSED")
-    // Default: COMPLETED only (backward compatible)
-    const validStatuses: SessionStatus[] = [
-      "ACTIVE",
-      "PAUSED",
-      "COMPLETED",
-      "DISCARDED",
-    ];
-    let statusFilter: SessionStatus[] | undefined;
-    if (statusParam) {
-      statusFilter = statusParam
-        .split(",")
-        .map((s) => s.trim().toUpperCase() as SessionStatus)
-        .filter((s) => validStatuses.includes(s));
-      if (statusFilter.length === 0) statusFilter = undefined;
-    }
-
-    const where = {
-      userId,
-      ...(mode && { mode }),
-      ...(statusFilter
-        ? { status: { in: statusFilter } }
-        : { status: "COMPLETED" as SessionStatus }),
-    };
-
-    const [sessions, total] = await Promise.all([
-      prisma.recitationSession.findMany({
-        where,
-        include: {
-          _count: {
-            select: { mistakes: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.recitationSession.count({ where }),
-    ]);
-
-    return NextResponse.json({ sessions, total });
-  } catch (error) {
-    console.error("Error fetching sessions:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  // Parse status filter: comma-separated list (e.g., "ACTIVE,PAUSED")
+  const validStatuses: SessionStatus[] = [
+    "ACTIVE",
+    "PAUSED",
+    "COMPLETED",
+    "DISCARDED",
+  ];
+  let statusFilter: SessionStatus[] | undefined;
+  if (statusParam) {
+    statusFilter = statusParam
+      .split(",")
+      .map((s) => s.trim().toUpperCase() as SessionStatus)
+      .filter((s) => validStatuses.includes(s));
+    if (statusFilter.length === 0) statusFilter = undefined;
   }
-}
+
+  const where = {
+    userId,
+    ...(mode && { mode }),
+    ...(statusFilter
+      ? { status: { in: statusFilter } }
+      : { status: "COMPLETED" as SessionStatus }),
+  };
+
+  const [sessions, total] = await Promise.all([
+    prisma.recitationSession.findMany({
+      where,
+      include: { _count: { select: { mistakes: true } } },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.recitationSession.count({ where }),
+  ]);
+
+  return NextResponse.json({ sessions, total });
+});
 
 // POST /api/progress/sessions - Create a new recitation session
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const userId = session.user.id;
-
+export const POST = withAuth(
+  async (request, { userId }) => {
     const body = await request.json();
+    const parsed = CreateSessionSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return validationError(parsed.error);
+    }
+
     const {
       surahNumber,
       startAyah,
@@ -101,48 +105,10 @@ export async function POST(request: NextRequest) {
       status: requestedStatus,
       stateSnapshot,
       targetType,
-    } = body;
-
-    // Validate required fields
-    if (
-      surahNumber == null ||
-      startAyah == null ||
-      endAyah == null ||
-      !mode ||
-      duration == null
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Missing required fields: surahNumber, startAyah, endAyah, mode, duration",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate mode enum
-    const validModes: SessionMode[] = ["READ", "MEMORIZE", "LISTEN", "REVIEW"];
-    if (!validModes.includes(mode)) {
-      return NextResponse.json(
-        { error: `Invalid mode. Must be one of: ${validModes.join(", ")}` },
-        { status: 400 }
-      );
-    }
-
-    // Validate surah number range
-    if (surahNumber < 1 || surahNumber > 114) {
-      return NextResponse.json(
-        { error: "surahNumber must be between 1 and 114" },
-        { status: 400 }
-      );
-    }
-
-    // Determine status
-    const sessionStatus: SessionStatus =
-      requestedStatus === "ACTIVE" ? "ACTIVE" : "COMPLETED";
+    } = parsed.data;
 
     // For ACTIVE sessions: save snapshot, skip stats updates
-    if (sessionStatus === "ACTIVE") {
+    if (requestedStatus === "ACTIVE") {
       const newSession = await prisma.recitationSession.create({
         data: {
           userId,
@@ -167,53 +133,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate mistakes if provided (for COMPLETED sessions)
-    if (mistakes && Array.isArray(mistakes)) {
-      const validMistakeTypes: MistakeType[] = [
-        "WRONG_WORD",
-        "SKIPPED",
-        "ADDED",
-        "TASHKEEL",
-        "ORDER",
-      ];
-      const validSeverities: MistakeSeverity[] = ["MINOR", "MAJOR"];
-
-      for (const mistake of mistakes) {
-        if (
-          mistake.surahNumber == null ||
-          mistake.ayahNumber == null ||
-          mistake.wordIndex == null ||
-          !mistake.type ||
-          !mistake.correctText
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "Each mistake must include surahNumber, ayahNumber, wordIndex, type, and correctText",
-            },
-            { status: 400 }
-          );
-        }
-        if (!validMistakeTypes.includes(mistake.type)) {
-          return NextResponse.json(
-            {
-              error: `Invalid mistake type. Must be one of: ${validMistakeTypes.join(", ")}`,
-            },
-            { status: 400 }
-          );
-        }
-        if (mistake.severity && !validSeverities.includes(mistake.severity)) {
-          return NextResponse.json(
-            {
-              error: `Invalid mistake severity. Must be one of: ${validSeverities.join(", ")}`,
-            },
-            { status: 400 }
-          );
-        }
-      }
-    }
-
-    // Create COMPLETED session with mistakes in a transaction, and update user stats
+    // Create COMPLETED session in a transaction with streak updates
     const createdSession = await prisma.$transaction(async (tx) => {
       const newSession = await tx.recitationSession.create({
         data: {
@@ -234,20 +154,12 @@ export async function POST(request: NextRequest) {
             ? {
                 mistakes: {
                   create: mistakes.map(
-                    (m: {
-                      surahNumber: number;
-                      ayahNumber: number;
-                      wordIndex: number;
-                      type: MistakeType;
-                      recitedText?: string;
-                      correctText: string;
-                      severity?: MistakeSeverity;
-                    }) => ({
+                    (m: z.infer<typeof MistakeSchema>) => ({
                       userId,
                       surahNumber: m.surahNumber,
                       ayahNumber: m.ayahNumber,
                       wordIndex: m.wordIndex,
-                      type: m.type,
+                      type: m.type as MistakeType,
                       recitedText: m.recitedText ?? null,
                       correctText: m.correctText,
                       severity: m.severity ?? "MINOR",
@@ -257,12 +169,10 @@ export async function POST(request: NextRequest) {
               }
             : {}),
         },
-        include: {
-          mistakes: true,
-        },
+        include: { mistakes: true },
       });
 
-      // Update user's totalTimeSpent and lastActiveAt
+      // Update user's totalTimeSpent and lastActiveAt (atomic increment)
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -271,7 +181,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Upsert today's StreakHistory (UTC date to avoid timezone bugs)
+      // Upsert today's StreakHistory (UTC date)
       const today = new Date();
       today.setUTCHours(0, 0, 0, 0);
 
@@ -292,33 +202,37 @@ export async function POST(request: NextRequest) {
           where: { userId_date: { userId, date: yesterday } },
         });
 
-        const currentUser = await tx.user.findUniqueOrThrow({
-          where: { id: userId },
-          select: { streakCount: true, longestStreak: true },
-        });
-
-        const newStreak = yesterdayActive?.isActive
-          ? currentUser.streakCount + 1
-          : 1;
-
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            streakCount: newStreak,
-            longestStreak: Math.max(newStreak, currentUser.longestStreak),
-          },
-        });
+        if (yesterdayActive?.isActive) {
+          // Atomic increment — avoids read-increment-write race condition
+          const updated = await tx.user.update({
+            where: { id: userId },
+            data: { streakCount: { increment: 1 } },
+            select: { streakCount: true, longestStreak: true },
+          });
+          if (updated.streakCount > updated.longestStreak) {
+            await tx.user.update({
+              where: { id: userId },
+              data: { longestStreak: updated.streakCount },
+            });
+          }
+        } else {
+          // Streak broken — reset to 1
+          await tx.user.update({
+            where: { id: userId },
+            data: { streakCount: 1 },
+          });
+        }
       }
 
       return newSession;
     });
 
-    return NextResponse.json(createdSession, { status: 201 });
-  } catch (error) {
-    console.error("Error creating session:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    logger.info(
+      { userId, sessionId: createdSession.id, surahNumber, mode },
+      "Session completed"
     );
-  }
-}
+
+    return NextResponse.json(createdSession, { status: 201 });
+  },
+  { maxRequests: 30, windowSeconds: 60 }
+);

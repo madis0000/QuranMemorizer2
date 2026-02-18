@@ -91,6 +91,14 @@ export default function MainLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Skip to content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:start-2 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
+
       {/* Desktop Top Nav */}
       <TopNavBar />
 
@@ -98,7 +106,7 @@ export default function MainLayout({
       <MobileTopBar />
 
       {/* Main Content */}
-      <main className="pt-14 lg:pt-16 pb-20 lg:pb-0">
+      <main id="main-content" className="pt-14 lg:pt-16 pb-20 lg:pb-0">
         <ErrorBoundary>{children}</ErrorBoundary>
         <MiniPlayer />
         <BlessedTimeIndicator />
@@ -109,6 +117,12 @@ export default function MainLayout({
 
       {/* Voice Search FAB - floats above all content */}
       <VoiceSearchFAB />
+
+      {/* Live region for dynamic notifications */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {recentXPAward && `Earned ${recentXPAward.amount} XP`}
+        {achievementData && `Achievement unlocked: ${achievementData.name}`}
+      </div>
 
       {/* Gamification Overlays */}
       {recentXPAward && (

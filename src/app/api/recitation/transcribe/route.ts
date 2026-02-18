@@ -1,34 +1,38 @@
 import { NextResponse } from "next/server";
 
-import { auth } from "@/lib/auth";
+import { apiError, handleApiError } from "@/lib/api/errors";
+import { withAuth } from "@/lib/api/with-auth";
+import { logger } from "@/lib/logger";
+
+const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10 MB
 
 /**
  * POST /api/recitation/transcribe
  * Transcribe Arabic audio using the Whisper model.
  * Proxies to HuggingFace Inference API with tarteel-ai/whisper-base-ar-quran.
  */
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+export const POST = withAuth(
+  async (request, { userId }) => {
     const formData = await request.formData();
     const audioFile = formData.get("audio");
 
     if (!audioFile || !(audioFile instanceof Blob)) {
-      return NextResponse.json(
-        { error: "No audio file provided" },
-        { status: 400 }
+      return apiError("VALIDATION_ERROR", "No audio file provided");
+    }
+
+    // Enforce file size limit
+    if (audioFile.size > MAX_AUDIO_SIZE) {
+      return apiError(
+        "PAYLOAD_TOO_LARGE",
+        `Audio file exceeds ${MAX_AUDIO_SIZE / 1024 / 1024}MB limit`
       );
     }
 
     const apiKey = process.env.HUGGINGFACE_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "Transcription service not configured" },
-        { status: 503 }
+      return apiError(
+        "SERVICE_UNAVAILABLE",
+        "Transcription service not configured"
       );
     }
 
@@ -48,19 +52,19 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("HuggingFace API error:", errorText);
+      logger.error(
+        { userId, status: response.status, errorText },
+        "HuggingFace API error"
+      );
 
       if (response.status === 503) {
-        return NextResponse.json(
-          { error: "Model is loading, please try again in a few seconds" },
-          { status: 503 }
+        return apiError(
+          "SERVICE_UNAVAILABLE",
+          "Model is loading, please try again in a few seconds"
         );
       }
 
-      return NextResponse.json(
-        { error: "Transcription failed" },
-        { status: 500 }
-      );
+      return apiError("INTERNAL_ERROR", "Transcription failed");
     }
 
     const result = await response.json();
@@ -70,11 +74,6 @@ export async function POST(request: Request) {
       confidence: result.confidence ?? 0.8,
       segments: result.chunks ?? [],
     });
-  } catch (error) {
-    console.error("Transcription error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
+  },
+  { maxRequests: 20, windowSeconds: 60 }
+);

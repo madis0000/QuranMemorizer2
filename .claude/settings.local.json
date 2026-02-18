@@ -20,7 +20,7 @@
       "Bash(npx prisma db push:*)",
       "Bash(docker ps:*)",
       "Bash(docker exec:*)",
-      "Bash(set DATABASE_URL=postgresql://postgres:MadisTrader2026@127.0.0.1:5432/quranmemorizer2)",
+      "Bash(set DATABASE_URL=$DATABASE_URL)",
       "Bash(timeout:*)",
       "Bash(ping:*)",
       "Bash(npm run dev:*)",

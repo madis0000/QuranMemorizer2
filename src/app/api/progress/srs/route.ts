@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
-import { auth } from "@/lib/auth";
+import { apiError, validationError } from "@/lib/api/errors";
+import { withAuth } from "@/lib/api/with-auth";
 import { prisma } from "@/lib/db";
 import {
   accuracyToRating,
@@ -53,91 +55,81 @@ function prismaToSRSCard(prismaCard: {
   };
 }
 
+// --- Zod schemas ---
+
+const CreateCardsSchema = z.object({
+  surahNumber: z.number().int().min(1).max(114),
+  startAyah: z.number().int().min(1),
+  endAyah: z.number().int().min(1),
+  category: z.enum(["sabaq", "sabqi", "manzil"]).optional(),
+});
+
+const ReviewCardSchema = z.object({
+  surahNumber: z.number().int().min(1).max(114),
+  ayahNumber: z.number().int().min(1),
+  accuracy: z.number().min(0).max(100),
+  rating: z.number().int().min(1).max(4).optional(),
+  showOptions: z.boolean().optional(),
+});
+
 /**
  * GET /api/progress/srs
  * Get SRS cards: due cards, all cards, or stats.
- * Query params: ?due=true (only due cards), ?stats=true (summary only)
  */
-export async function GET(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const GET = withAuth(async (request, { userId }) => {
+  const { searchParams } = new URL(request.url);
+  const dueOnly = searchParams.get("due") === "true";
+  const statsOnly = searchParams.get("stats") === "true";
+  const category = searchParams.get("category");
 
-    const { searchParams } = new URL(request.url);
-    const dueOnly = searchParams.get("due") === "true";
-    const statsOnly = searchParams.get("stats") === "true";
-    const category = searchParams.get("category");
+  const where = {
+    userId,
+    ...(category && { category }),
+  };
 
-    // Build query filters
-    const where = {
-      userId: session.user.id,
-      ...(category && { category }),
-    };
+  const prismaCards = await prisma.fSRSCard.findMany({
+    where,
+    orderBy: { due: "asc" },
+  });
 
-    const prismaCards = await prisma.fSRSCard.findMany({
-      where,
-      orderBy: { due: "asc" },
-    });
+  const cards = prismaCards.map(prismaToSRSCard);
 
-    const cards = prismaCards.map(prismaToSRSCard);
-
-    if (statsOnly) {
-      return NextResponse.json(getStudyStats(cards));
-    }
-
-    if (dueOnly) {
-      return NextResponse.json({ cards: getDueCards(cards) });
-    }
-
-    return NextResponse.json({ cards });
-  } catch (error) {
-    console.error("SRS GET error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  if (statsOnly) {
+    return NextResponse.json(getStudyStats(cards));
   }
-}
+
+  if (dueOnly) {
+    return NextResponse.json({ cards: getDueCards(cards) });
+  }
+
+  return NextResponse.json({ cards });
+});
 
 /**
  * POST /api/progress/srs
  * Add new SRS cards for ayahs to memorize.
- * Body: { surahNumber, startAyah, endAyah, category? }
  */
-export async function POST(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const POST = withAuth(
+  async (request, { userId }) => {
+    const body = await request.json();
+    const parsed = CreateCardsSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return validationError(parsed.error);
     }
 
-    const { surahNumber, startAyah, endAyah, category } = await request.json();
-
-    if (!surahNumber || !startAyah || !endAyah) {
-      return NextResponse.json(
-        { error: "Missing required fields: surahNumber, startAyah, endAyah" },
-        { status: 400 }
-      );
-    }
+    const { surahNumber, startAyah, endAyah, category } = parsed.data;
 
     if (startAyah > endAyah) {
-      return NextResponse.json(
-        { error: "startAyah must be <= endAyah" },
-        { status: 400 }
-      );
+      return apiError("VALIDATION_ERROR", "startAyah must be <= endAyah");
     }
 
     // Get existing cards for this range to avoid duplicates
     const existingCards = await prisma.fSRSCard.findMany({
       where: {
-        userId: session.user.id,
+        userId,
         surahNumber,
-        ayahNumber: {
-          gte: startAyah,
-          lte: endAyah,
-        },
+        ayahNumber: { gte: startAyah, lte: endAyah },
       },
       select: { ayahNumber: true },
     });
@@ -146,13 +138,12 @@ export async function POST(request: Request) {
       existingCards.map((c: { ayahNumber: number }) => c.ayahNumber)
     );
 
-    // Create cards for each ayah in range (skip existing)
     const newCardsData = [];
     for (let ayah = startAyah; ayah <= endAyah; ayah++) {
       if (!existingAyahs.has(ayah)) {
         const card = createCard(surahNumber, ayah, category);
         newCardsData.push({
-          userId: session.user.id,
+          userId,
           surahNumber: card.surahNumber,
           ayahNumber: card.ayahNumber,
           due: new Date(card.due),
@@ -171,43 +162,31 @@ export async function POST(request: Request) {
       }
     }
 
-    // Batch create cards
     if (newCardsData.length > 0) {
-      await prisma.fSRSCard.createMany({
-        data: newCardsData,
-      });
+      await prisma.fSRSCard.createMany({ data: newCardsData });
     }
 
-    const totalCards = await prisma.fSRSCard.count({
-      where: { userId: session.user.id },
-    });
+    const totalCards = await prisma.fSRSCard.count({ where: { userId } });
 
     return NextResponse.json(
       { added: newCardsData.length, total: totalCards },
       { status: 201 }
     );
-  } catch (error) {
-    console.error("SRS POST error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
+  },
+  { maxRequests: 30, windowSeconds: 60 }
+);
 
 /**
  * PATCH /api/progress/srs
  * Review a card and update its schedule.
- * Body: { surahNumber, ayahNumber, accuracy, duration?, showOptions? }
- *
- * If showOptions=true, returns scheduling options for all 4 ratings
- * Otherwise, updates the card based on accuracy
  */
-export async function PATCH(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const PATCH = withAuth(
+  async (request, { userId }) => {
+    const body = await request.json();
+    const parsed = ReviewCardSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return validationError(parsed.error);
     }
 
     const {
@@ -216,25 +195,12 @@ export async function PATCH(request: Request) {
       accuracy,
       rating: explicitRating,
       showOptions,
-    } = await request.json();
-
-    if (!surahNumber || !ayahNumber || accuracy === undefined) {
-      return NextResponse.json(
-        {
-          error: "Missing required fields: surahNumber, ayahNumber, accuracy",
-        },
-        { status: 400 }
-      );
-    }
+    } = parsed.data;
 
     // Find the card
     let prismaCard = await prisma.fSRSCard.findUnique({
       where: {
-        userId_surahNumber_ayahNumber: {
-          userId: session.user.id,
-          surahNumber,
-          ayahNumber,
-        },
+        userId_surahNumber_ayahNumber: { userId, surahNumber, ayahNumber },
       },
     });
 
@@ -243,7 +209,7 @@ export async function PATCH(request: Request) {
       const newCard = createCard(surahNumber, ayahNumber);
       prismaCard = await prisma.fSRSCard.create({
         data: {
-          userId: session.user.id,
+          userId,
           surahNumber: newCard.surahNumber,
           ayahNumber: newCard.ayahNumber,
           due: new Date(newCard.due),
@@ -274,21 +240,15 @@ export async function PATCH(request: Request) {
       });
     }
 
-    // Use explicit rating (1-4) if provided, otherwise derive from accuracy
     const rating =
       explicitRating && explicitRating >= 1 && explicitRating <= 4
         ? explicitRating
         : accuracyToRating(accuracy);
     const { card: updatedCard } = reviewCard(card, rating, accuracy);
 
-    // Update in database
     await prisma.fSRSCard.update({
       where: {
-        userId_surahNumber_ayahNumber: {
-          userId: session.user.id,
-          surahNumber,
-          ayahNumber,
-        },
+        userId_surahNumber_ayahNumber: { userId, surahNumber, ayahNumber },
       },
       data: {
         due: new Date(updatedCard.due),
@@ -307,7 +267,6 @@ export async function PATCH(request: Request) {
       },
     });
 
-    // Return updated card with scheduling options
     const options = getSchedulingOptions(updatedCard);
 
     return NextResponse.json({
@@ -316,89 +275,79 @@ export async function PATCH(request: Request) {
       rating,
       message: `Card reviewed with ${rating === 1 ? "Again" : rating === 2 ? "Hard" : rating === 3 ? "Good" : "Easy"} rating`,
     });
-  } catch (error) {
-    console.error("SRS PATCH error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
+  },
+  { maxRequests: 60, windowSeconds: 60 }
+);
 
 /**
  * DELETE /api/progress/srs
- * Delete a specific card or all cards for a surah
- * Query params: ?surahNumber=X&ayahNumber=Y (specific card)
- *               ?surahNumber=X (all cards in surah)
- *               ?all=true (all user's cards - use with caution!)
+ * Delete a specific card or all cards for a surah.
+ * Requires explicit ?confirm=true for bulk operations.
  */
-export async function DELETE(request: Request) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const DELETE = withAuth(async (request, { userId }) => {
+  const { searchParams } = new URL(request.url);
+  const surahNumber = searchParams.get("surahNumber");
+  const ayahNumber = searchParams.get("ayahNumber");
+  const deleteAll = searchParams.get("all") === "true";
+  const confirm = searchParams.get("confirm") === "true";
 
-    const { searchParams } = new URL(request.url);
-    const surahNumber = searchParams.get("surahNumber");
-    const ayahNumber = searchParams.get("ayahNumber");
-    const deleteAll = searchParams.get("all") === "true";
-
-    if (deleteAll) {
-      // Delete all user's cards
-      const result = await prisma.fSRSCard.deleteMany({
-        where: { userId: session.user.id },
-      });
-      return NextResponse.json({
-        deleted: result.count,
-        message: "All SRS cards deleted",
-      });
-    }
-
-    if (!surahNumber) {
-      return NextResponse.json(
-        { error: "Missing surahNumber parameter" },
-        { status: 400 }
+  if (deleteAll) {
+    // Require explicit confirmation for mass deletion
+    if (!confirm) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "Deleting all SRS cards requires ?confirm=true"
       );
     }
+    const result = await prisma.fSRSCard.deleteMany({
+      where: { userId },
+    });
+    return NextResponse.json({
+      deleted: result.count,
+      message: "All SRS cards deleted",
+    });
+  }
 
-    if (ayahNumber) {
-      // Delete specific card
-      const result = await prisma.fSRSCard.deleteMany({
-        where: {
-          userId: session.user.id,
-          surahNumber: parseInt(surahNumber),
-          ayahNumber: parseInt(ayahNumber),
-        },
-      });
+  if (!surahNumber) {
+    return apiError("VALIDATION_ERROR", "Missing surahNumber parameter");
+  }
 
-      if (result.count === 0) {
-        return NextResponse.json({ error: "Card not found" }, { status: 404 });
-      }
-
-      return NextResponse.json({
-        deleted: result.count,
-        message: `Deleted card for Surah ${surahNumber}:${ayahNumber}`,
-      });
-    }
-
-    // Delete all cards for a surah
+  if (ayahNumber) {
     const result = await prisma.fSRSCard.deleteMany({
       where: {
-        userId: session.user.id,
+        userId,
         surahNumber: parseInt(surahNumber),
+        ayahNumber: parseInt(ayahNumber),
       },
     });
 
+    if (result.count === 0) {
+      return apiError("NOT_FOUND", "Card not found");
+    }
+
     return NextResponse.json({
       deleted: result.count,
-      message: `Deleted all cards for Surah ${surahNumber}`,
+      message: `Deleted card for Surah ${surahNumber}:${ayahNumber}`,
     });
-  } catch (error) {
-    console.error("SRS DELETE error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+  }
+
+  // Delete all cards for a surah — also require confirm
+  if (!confirm) {
+    return apiError(
+      "VALIDATION_ERROR",
+      "Deleting all surah cards requires ?confirm=true"
     );
   }
-}
+
+  const result = await prisma.fSRSCard.deleteMany({
+    where: {
+      userId,
+      surahNumber: parseInt(surahNumber),
+    },
+  });
+
+  return NextResponse.json({
+    deleted: result.count,
+    message: `Deleted all cards for Surah ${surahNumber}`,
+  });
+});
